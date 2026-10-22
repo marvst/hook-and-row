@@ -87,18 +87,19 @@ kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(
 .row-label{font-family:var(--display);font-size:1.9rem;font-weight:700;line-height:1}
 .done-pill{font-size:.75rem;font-weight:700;color:var(--done);background:var(--done-soft);padding:3px 9px;border-radius:99px}
 .now-text{font-size:1.1rem;line-height:1.5;max-width:70ch}
-.steps{display:grid;gap:8px}
-.step{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:12px 16px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);text-align:left;font-size:1.05rem;line-height:1.3;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .08s}
+.steps{display:flex;flex-wrap:wrap;gap:8px}
+.step{flex:1 1 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;padding:8px 14px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);text-align:left;font-size:1.05rem;line-height:1.25;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .08s}
 .step:active{transform:scale(.985)}
 .step.on{background:var(--done-soft);border-color:var(--done);text-decoration:line-through;text-decoration-color:var(--done);color:var(--muted)}
 .step.active{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700;box-shadow:0 0 0 4px var(--accent-soft)}
 .step .n{font-size:.95rem;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:400;flex:none;min-width:3ch;text-align:right}
 .step.active .n{color:var(--accent-fg);font-weight:700;font-size:1.05rem}
 .step.pressing{box-shadow:0 0 0 4px var(--done-soft);border-color:var(--done)}
-.rep-group{border:1px dashed var(--line);border-radius:14px;padding:10px;display:grid;gap:8px}
+.rep-group{flex-basis:100%;border:1px dashed var(--line);border-radius:14px;padding:8px;display:grid;gap:8px}
 .rep-group.done{opacity:.55}
 .rep-head{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.rep-steps{display:grid;gap:8px}
+.rep-steps{display:flex;flex-wrap:wrap;gap:8px}
+.now-text.compact{display:none}
 .steps-hint{font-size:.78rem;color:var(--muted);margin-top:6px}
 .next-up{font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .note summary{cursor:pointer;font-size:.9rem;font-weight:700;color:var(--muted);min-height:36px;display:flex;align-items:center}
@@ -214,7 +215,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
     <footer class="lib-foot">
       <button class="link" id="btn-backup" type="button">Backup e restauração</button>
       <button class="link" id="btn-help" type="button">Formato da receita</button>
-      <span class="ver" title="Se o app parecer antigo, recarregue a página">v9 · 22 out 2026</span>
+      <span class="ver" title="Se o app parecer antigo, recarregue a página">v10 · 22 out 2026</span>
     </footer>
   </aside>
 
@@ -343,7 +344,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
       <li><strong>Repetições</strong>: <code>*…* repetir 6 vezes</code> (ou <code>6x</code>, <code>repeat 6 times</code>) mantém o trecho entre asteriscos como uma etapa só e define a meta de repetições.</li>
       <li><strong>Partes</strong>: linhas curtas com inicial maiúscula, como <code>Corpo</code> ou <code>Manga esquerda:</code>, agrupam as carreiras seguintes.</li>
       <li><strong>O resto</strong>: uma frase como <code>Arremate e esconda as pontas.</code> vira uma etapa simples para marcar. Uma linha que começa em minúscula continua a carreira de cima (útil em texto copiado de PDF).</li>
-      <li><strong>Etapas</strong>: cada carreira é dividida nas vírgulas para você tocar instrução por instrução.</li>
+      <li><strong>Etapas</strong>: cada carreira é dividida nas vírgulas para você tocar instrução por instrução. Toque conta um ponto; segurar conclui a instrução inteira; tocar em outra instrução pula até ela.</li>
       <li><strong>PDFs</strong>: o texto é extraído página por página e colocado na caixa para você revisar antes de importar. Gráficos e fotos são ignorados, PDFs escaneados não têm texto para ler, e um layout em duas colunas pode sair misturado; nesse caso copie o texto do seu leitor de PDF.</li>
     </ul>
     <div class="dialog-actions"><button class="btn primary" id="help-close" type="button">Entendi</button></div>
@@ -663,8 +664,10 @@ function renderNow(){
   $('#now-done').hidden=!p.done[i];
   $('#now-text').textContent=row.text;
   const plan=row.plan,taps=Math.min(p.taps[i]||0,plan.total),loc=locate(plan,taps);
+  const chipCount=plan.segments.reduce((a,s)=>a+(s.kind==='step'?1:s.steps.length),0);
+  $('#now-text').classList.toggle('compact',chipCount>1);
   renderSteps(p,i,plan,taps,loc);
-  $('#steps-hint').hidden=plan.total<2;
+  $('#steps-hint').hidden=true;
   $('#st-count').value=taps;
   $('#st-target').textContent='de '+plan.total;
   const nowTxt=loc?('· '+(loc.rep?'rep. '+loc.rep+'/'+loc.repTimes+' · ':'')+loc.label+(loc.count>1?' '+loc.done+'/'+loc.count:'')):'· tudo marcado';
