@@ -1,0 +1,1031 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hook &amp; Row</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Mobile first: uma tela por vez (biblioteca ou receita). A carreira atual fica no topo, a lista rola no meio,
+   e os contadores com o botão de concluir ficam numa barra presa embaixo, ao alcance do polegar.
+   A partir de 860px a biblioteca vira uma coluna fixa à esquerda. Tema único, claro. */
+:root{
+  --bg:#f2f0f4; --surface:#ffffff; --surface-2:#e8e4ed; --fg:#231e27; --muted:#6b6371; --line:#d8d2de;
+  --accent:#9a2f5f; --accent-fg:#ffffff; --accent-soft:#f5e2eb;
+  --done:#3f7d4f; --done-soft:#e0efe3; --danger:#b4233a;
+  --display:"Fraunces", Georgia, "Times New Roman", serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --shadow:0 1px 2px rgba(35,30,39,.06), 0 12px 32px -20px rgba(80,30,60,.45);
+  --gutter-l:max(16px,env(safe-area-inset-left,0px));
+  --gutter-r:max(16px,env(safe-area-inset-right,0px));
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-text-size-adjust:100%;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{margin:0;text-wrap:balance}
+p{margin:0}
+kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--surface)}
+
+/* Telas */
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr)}
+.library,.work{overflow:auto;-webkit-overflow-scrolling:touch;padding-left:var(--gutter-l);padding-right:var(--gutter-r)}
+.library{background:var(--surface-2);display:flex;flex-direction:column;gap:16px;padding-block:18px 18px}
+.work{padding-block:0 0;position:relative;display:flex;flex-direction:column}
+.app[data-view="pattern"] .library{display:none}
+.app[data-view="library"] .work{display:none}
+.desktop-only{display:none}
+
+/* Biblioteca */
+.brand{font-family:var(--display);font-weight:700;font-size:1.7rem;letter-spacing:-.01em;line-height:1.1}
+.brand em{color:var(--accent);font-weight:500}
+.tag{color:var(--muted);font-size:.9rem;margin-top:4px}
+.pattern-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pl-item{width:100%;text-align:left;padding:14px;border-radius:14px;background:var(--surface);border:1px solid transparent;display:grid;gap:8px;min-height:56px}
+.pl-item.active{border-color:var(--accent)}
+.pl-name{font-weight:700;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.pl-name .ex{font-size:.7rem;font-weight:400;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);flex:none}
+.pl-meta{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{height:5px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.pl-item .bar{background:var(--bg)}
+.bar span{display:block;height:100%;background:var(--accent);border-radius:99px;width:0;transition:width .25s}
+.bar.full span{background:var(--done)}
+.lib-foot{margin-top:auto;display:flex;gap:16px;flex-wrap:wrap;padding-top:8px}
+.link{color:var(--muted);font-size:.9rem;text-decoration:underline;text-underline-offset:3px;min-height:44px;display:inline-flex;align-items:center}
+
+/* Botões */
+.btn{min-height:48px;padding:10px 18px;border-radius:14px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;line-height:1.2}
+.btn.primary{background:var(--accent);color:var(--accent-fg)}
+.btn.ghost{border:1px solid var(--line);background:var(--surface)}
+.btn.ready{box-shadow:0 0 0 4px var(--accent-soft)}
+.icon-btn{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;line-height:1;flex:none}
+
+/* Cabeçalho da receita */
+.work-head{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;align-items:center;gap:6px;padding-block:8px;border-bottom:1px solid var(--line);margin-inline:calc(-1 * var(--gutter-l)) calc(-1 * var(--gutter-r));padding-inline:calc(var(--gutter-l) - 6px) calc(var(--gutter-r) - 6px)}
+.title-wrap{flex:1;min-width:0;display:grid;gap:4px}
+.title-wrap h2{font-family:var(--display);font-weight:700;font-size:1.2rem;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.progress{display:flex;align-items:center;gap:10px}
+.progress .bar{flex:1;max-width:320px}
+.pct{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.menu-wrap{position:relative}
+.menu{position:absolute;right:0;top:48px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px;display:grid;min-width:230px;box-shadow:var(--shadow);z-index:6}
+.menu button{text-align:left;padding:12px 14px;border-radius:10px;min-height:44px}
+.menu .danger{color:var(--danger)}
+.about{color:var(--muted);font-size:.9rem;margin-top:10px;max-width:65ch}
+.about summary{cursor:pointer;font-weight:700;color:var(--fg);min-height:32px}
+.about p{margin-top:6px}
+
+/* Carreira atual */
+.now{margin-block:12px;background:var(--surface);border-radius:18px;padding:16px;box-shadow:var(--shadow);display:grid;gap:12px}
+.now-label{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.row-label{font-family:var(--display);font-size:1.9rem;font-weight:700;line-height:1}
+.done-pill{font-size:.75rem;font-weight:700;color:var(--done);background:var(--done-soft);padding:3px 9px;border-radius:99px}
+.now-text{font-size:1.1rem;line-height:1.5;max-width:70ch}
+.steps{display:flex;flex-wrap:wrap;gap:8px}
+.step{min-height:40px;padding:8px 13px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);text-align:left;font-size:.95rem;line-height:1.3}
+.step.on{background:var(--done-soft);border-color:var(--done);text-decoration:line-through;text-decoration-color:var(--done);color:var(--muted)}
+.steps-hint{font-size:.78rem;color:var(--muted);margin-top:6px}
+.next-up{font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note summary{cursor:pointer;font-size:.9rem;font-weight:700;color:var(--muted);min-height:36px;display:flex;align-items:center}
+.note textarea{margin-top:4px;min-height:70px}
+.hint{font-size:.8rem;color:var(--muted)}
+
+/* Lista de carreiras */
+#pattern{display:flex;flex-direction:column;flex:1}
+.rows{display:grid;gap:2px;padding-bottom:12px}
+.section-title{font-family:var(--display);font-size:1.15rem;font-weight:700;margin:18px 0 6px;display:flex;align-items:baseline;gap:10px}
+.section-title small{font-family:var(--body);font-size:.78rem;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.row{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;align-items:start;padding:8px 6px;border-radius:12px;min-height:52px}
+.row.current{background:var(--accent-soft)}
+.check{width:36px;height:36px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:transparent;font-weight:700;margin-top:2px}
+.row.done .check{background:var(--done);border-color:var(--done);color:var(--bg)}
+.row-main{text-align:left;display:grid;gap:2px;min-width:0;min-height:36px}
+.row-main .lbl{font-weight:700;font-size:.92rem;display:flex;gap:8px;align-items:baseline}
+.row-main .lbl .cnt{font-weight:400;font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.row-text{font-size:.95rem}
+.row.done .row-text,.row.done .row-main .lbl{color:var(--muted)}
+.row-note{font-size:.82rem;color:var(--accent);font-style:italic}
+
+/* Barra inferior: contadores e concluir, presos ao fim da tela */
+.dock{position:sticky;bottom:0;z-index:4;margin-top:auto;margin-inline:calc(-1 * var(--gutter-l)) calc(-1 * var(--gutter-r));padding:10px var(--gutter-r) 10px var(--gutter-l);background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -10px 28px -18px rgba(35,30,39,.45);display:grid;gap:8px}
+.dock-top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.82rem}
+.dock-lbl{font-weight:700}
+.dock-top .target{color:var(--muted);font-variant-numeric:tabular-nums}
+.dock-rep{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.dock-rep output{font-weight:700;min-width:1.5ch;text-align:center}
+.mini{width:36px;height:36px;border-radius:50%;background:var(--surface-2);font-size:1.2rem;font-weight:700;line-height:1;display:grid;place-items:center}
+.dock-rep.reached output{color:var(--done)}
+.dock-count{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px}
+.big-btn{width:60px;height:60px;border-radius:50%;background:var(--surface-2);font-size:2rem;line-height:1;font-weight:700;flex:none;transition:transform .08s;display:grid;place-items:center}
+.big-btn:active{transform:scale(.94)}
+.big-btn.plus{background:var(--accent);color:var(--accent-fg);width:76px;height:76px;font-size:2.4rem}
+.count{font-family:var(--display);font-size:2.8rem;font-weight:700;font-variant-numeric:tabular-nums;text-align:center;line-height:1}
+.dock-count.reached .count{color:var(--done)}
+.row-actions{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
+.row-actions .primary{font-size:1.05rem}
+.row-actions .ghost{padding-inline:16px}
+
+/* Voz */
+.dock-left{display:flex;align-items:center;gap:8px}
+.mini.mic svg{width:18px;height:18px}
+.mini.mic.on{background:var(--accent);color:var(--accent-fg)}
+.voice-status{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:8px;min-height:20px;flex-wrap:wrap}
+.voice-status.listening::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite;flex:none}
+.voice-status.err{color:var(--danger)}
+.voice-status .link{min-height:0;font-size:.8rem}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+.cmds{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.92rem}
+.check-row{display:flex;align-items:center;gap:10px;min-height:44px;font-size:.92rem}
+.check-row input{width:22px;height:22px;accent-color:var(--accent)}
+
+/* Estado vazio */
+.empty{max-width:48ch;margin-block:40px;display:grid;gap:14px}
+.empty h2{font-family:var(--display);font-size:1.7rem}
+.empty p{color:var(--muted)}
+
+/* Janelas: folha que sobe de baixo no celular, caixa centralizada em telas maiores */
+.overlay{position:fixed;inset:0;background:rgba(20,10,20,.55);display:grid;align-items:end;justify-items:center;z-index:50}
+.dialog{background:var(--surface);color:var(--fg);border-radius:20px 20px 0 0;width:100%;max-height:94%;overflow:auto;display:grid;gap:12px;box-shadow:var(--shadow);padding:18px var(--gutter-r) calc(18px + env(safe-area-inset-bottom,0px)) var(--gutter-l)}
+.dialog h3{font-family:var(--display);font-size:1.35rem}
+.dialog p{color:var(--muted);font-size:.92rem}
+.field{display:grid;gap:6px}
+.field label{font-size:.85rem;font-weight:700}
+input[type=text],textarea{font:inherit;font-size:16px;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px;width:100%;min-height:48px}
+textarea{min-height:150px;resize:vertical;line-height:1.45}
+.dialog-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.dialog-actions .btn{flex:1 1 40%}
+.dialog-actions .spacer{display:none}
+.preview{font-size:.88rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.file-btn{position:relative;overflow:hidden}
+.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.help ul{margin:0;padding-left:20px;display:grid;gap:8px;font-size:.92rem}
+.help code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:.9em}
+
+.toast{position:fixed;left:50%;bottom:calc(190px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;z-index:60;font-size:.92rem;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Telas maiores: duas colunas, caixas centralizadas, atalhos de teclado */
+@media (min-width:600px){
+  .overlay{align-items:center;padding:16px}
+  .dialog{width:min(640px,100%);border-radius:18px;padding:22px;max-height:calc(100% - 32px)}
+  .dialog-actions .btn{flex:0 0 auto}
+  .dialog-actions .spacer{display:block;flex:1}
+  textarea{min-height:200px}
+}
+@media (min-width:860px){
+  .app{grid-template-columns:300px minmax(0,1fr)}
+  .app[data-view] .library{display:flex;border-right:1px solid var(--line);padding-right:16px;padding-block:22px 18px}
+  .app[data-view] .work{display:flex;padding-left:16px}
+  .mobile-only{display:none!important}
+  .desktop-only{display:block}
+  .pl-item:hover{border-color:var(--line)}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.ghost:hover,.icon-btn:hover,.menu button:hover{background:var(--surface-2)}
+  .step:hover{border-color:var(--muted)}
+  .check:hover{border-color:var(--done)}
+  .work-head{padding-block:14px 12px;gap:10px;margin-inline:0;padding-inline:0}
+  .title-wrap h2{font-size:1.35rem}
+  .now{margin-block:18px;padding:20px;gap:16px}
+  .row-label{font-size:2.1rem}
+  .now-text{font-size:1.15rem}
+  .dock{margin-inline:0;padding-inline:0;border-top:0;box-shadow:none;background:transparent}
+  .dock-inner{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 16px;display:grid;gap:8px;box-shadow:var(--shadow)}
+  .toast{bottom:calc(24px + env(safe-area-inset-bottom,0px))}
+}
+</style>
+
+<div class="app" id="app" data-view="library" lang="pt-BR">
+  <aside class="library">
+    <header>
+      <h1 class="brand">Hook <em>&amp;</em> Row</h1>
+      <p class="tag">Cole uma receita e vá marcando pontos e carreiras. O progresso fica salvo neste navegador.</p>
+    </header>
+    <button class="btn primary" id="btn-import" type="button">+ Importar receita</button>
+    <ul class="pattern-list" id="pattern-list"></ul>
+    <footer class="lib-foot">
+      <button class="link" id="btn-backup" type="button">Backup e restauração</button>
+      <button class="link" id="btn-help" type="button">Formato da receita</button>
+    </footer>
+  </aside>
+
+  <main class="work" id="work">
+    <section class="empty" id="empty" hidden>
+      <h2>Nenhuma receita aberta</h2>
+      <p>Escolha uma receita na lista ou importe uma nova. Cole as instruções escritas e cada carreira ou volta vira uma etapa com o próprio contador de pontos.</p>
+      <div><button class="btn primary" id="btn-import-2" type="button">+ Importar receita</button></div>
+    </section>
+
+    <section id="pattern" hidden>
+      <header class="work-head">
+        <button class="icon-btn mobile-only" id="btn-back-lib" type="button" aria-label="Voltar para todas as receitas">&#8249;</button>
+        <div class="title-wrap">
+          <h2 id="p-name"></h2>
+          <div class="progress"><div class="bar" id="p-barwrap"><span id="p-bar"></span></div><span class="pct" id="p-pct"></span></div>
+        </div>
+        <div class="menu-wrap">
+          <button class="icon-btn" id="btn-menu" type="button" aria-label="Opções da receita" aria-haspopup="true" aria-expanded="false">&#8943;</button>
+          <div class="menu" id="menu" hidden>
+            <button type="button" data-act="rename">Renomear</button>
+            <button type="button" data-act="edit">Editar texto da receita</button>
+            <button type="button" data-act="reset">Zerar progresso</button>
+            <button type="button" data-act="delete" class="danger">Excluir receita</button>
+          </div>
+        </div>
+      </header>
+
+      <details class="about" id="about" hidden><summary>Sobre esta receita</summary><p id="about-text"></p></details>
+
+      <section class="now" id="now" aria-live="polite">
+        <div class="now-label">
+          <span class="eyebrow" id="now-section"></span>
+          <span class="row-label" id="now-label"></span>
+          <span class="done-pill" id="now-done" hidden>Concluída</span>
+        </div>
+        <p class="now-text" id="now-text"></p>
+        <div>
+          <div class="steps" id="steps"></div>
+          <p class="steps-hint" id="steps-hint">Toque em cada instrução conforme for terminando.</p>
+        </div>
+        <p class="next-up" id="next-up"></p>
+        <details class="note">
+          <summary>Anotação desta carreira</summary>
+          <textarea id="row-note" placeholder="Troca de agulha, cor, onde você parou…"></textarea>
+        </details>
+        <p class="hint desktop-only">Teclado: <kbd>+</kbd> / <kbd>&minus;</kbd> ou <kbd>&rarr;</kbd> / <kbd>&larr;</kbd> contam pontos, <kbd>Enter</kbd> conclui a carreira.</p>
+      </section>
+
+      <section class="rows" id="rows"></section>
+
+      <div class="dock" id="dock">
+        <div class="dock-inner">
+          <p class="voice-status" id="voice-status" hidden></p>
+          <div class="dock-top">
+            <div class="dock-left">
+              <button class="mini mic" id="btn-mic" type="button" aria-label="Comandos de voz" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg></button>
+              <span class="dock-lbl">Pontos</span> <span class="target" id="st-target"></span>
+            </div>
+            <div class="dock-rep" id="rep-counter">
+              <span class="dock-lbl">Repetições</span>
+              <button class="mini" id="rep-minus" type="button" aria-label="Uma repetição a menos">&minus;</button>
+              <output id="rep-count" for="rep-plus rep-minus">0</output>
+              <span class="target" id="rep-target"></span>
+              <button class="mini" id="rep-plus" type="button" aria-label="Mais uma repetição">+</button>
+            </div>
+          </div>
+          <div class="dock-count" id="st-counter">
+            <button class="big-btn" id="st-minus" type="button" aria-label="Um ponto a menos">&minus;</button>
+            <output class="count" id="st-count" for="st-plus st-minus">0</output>
+            <button class="big-btn plus" id="st-plus" type="button" aria-label="Mais um ponto">+</button>
+          </div>
+          <div class="row-actions">
+            <button class="btn ghost" id="btn-prev" type="button" aria-label="Carreira anterior">&#8249;</button>
+            <button class="btn primary" id="btn-done" type="button">Carreira concluída &#8250;</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Importar -->
+<div class="overlay" id="dlg-import" hidden>
+  <div class="dialog" role="dialog" aria-labelledby="import-title" lang="pt-BR">
+    <h3 id="import-title">Importar receita</h3>
+    <p>Cole as instruções escritas ou abra um PDF para extrair o texto. Linhas que começam com <code>Carreira 3:</code>, <code>Volta 12</code>, <code>Carr. 5 a 10:</code> ou <code>Row 3:</code> viram carreiras; linhas curtas como <code>Mangas</code> viram partes. Confira o texto antes de importar.</p>
+    <div class="field"><label for="imp-name">Nome</label><input type="text" id="imp-name" placeholder="Se ficar vazio, usa a primeira linha"></div>
+    <div class="field"><label for="imp-text">Texto da receita</label><textarea id="imp-text" placeholder="Volta 1: anel mágico com 6 pb. (6 pts)&#10;Volta 2: 2 pb em cada pt ao redor. (12 pts)&#10;Volta 3: *1 pb, aum* repetir 6 vezes. (18 pts)"></textarea></div>
+    <p class="preview" id="imp-preview"></p>
+    <p id="imp-warn" hidden>Reimportar substitui as carreiras desta receita e zera o progresso.</p>
+    <div class="dialog-actions">
+      <button class="btn ghost file-btn" type="button">Abrir .pdf ou .txt<input type="file" id="imp-file" accept=".txt,.pdf,text/plain,application/pdf" aria-label="Abrir um arquivo PDF ou de texto"></button>
+      <button class="btn ghost" id="imp-sample" type="button">Carregar um exemplo</button>
+      <span class="spacer"></span>
+      <button class="btn ghost" id="imp-cancel" type="button">Cancelar</button>
+      <button class="btn primary" id="imp-go" type="button">Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Renomear -->
+<div class="overlay" id="dlg-rename" hidden>
+  <div class="dialog" role="dialog" aria-labelledby="rename-title" lang="pt-BR">
+    <h3 id="rename-title">Renomear receita</h3>
+    <div class="field"><label for="ren-name">Nome</label><input type="text" id="ren-name"></div>
+    <div class="dialog-actions">
+      <button class="btn ghost" id="ren-cancel" type="button">Cancelar</button>
+      <button class="btn primary" id="ren-go" type="button">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Backup -->
+<div class="overlay" id="dlg-backup" hidden>
+  <div class="dialog" role="dialog" aria-labelledby="backup-title" lang="pt-BR">
+    <h3 id="backup-title">Backup e restauração</h3>
+    <p>Tudo fica salvo só neste navegador. Copie o texto do backup para um lugar seguro, ou cole em outro aparelho para levar suas receitas e o progresso junto.</p>
+    <div class="field"><label for="bk-out">Seu backup</label><textarea id="bk-out" readonly style="min-height:110px"></textarea></div>
+    <div class="dialog-actions"><span class="spacer"></span><button class="btn ghost" id="bk-copy" type="button">Copiar backup</button></div>
+    <div class="field"><label for="bk-in">Restaurar a partir de um backup</label><textarea id="bk-in" placeholder="Cole um backup aqui" style="min-height:90px"></textarea></div>
+    <div class="dialog-actions">
+      <button class="btn ghost" id="bk-close" type="button">Fechar</button>
+      <span class="spacer"></span>
+      <button class="btn primary" id="bk-restore" type="button">Substituir tudo por este backup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ajuda -->
+<div class="overlay" id="dlg-help" hidden>
+  <div class="dialog help" role="dialog" aria-labelledby="help-title" lang="pt-BR">
+    <h3 id="help-title">O que o importador entende</h3>
+    <ul>
+      <li><strong>Carreiras e voltas</strong>: linhas que começam com <code>Carreira 1:</code>, <code>Carr. 1</code>, <code>Volta 1</code>, <code>Rodada 1</code>, <code>Row 1:</code>, <code>Rnd 1</code>, <code>R1</code> ou <code>1.</code> seguidas das instruções.</li>
+      <li><strong>Intervalos</strong>: <code>Carreiras 5 a 10: 1 pb em cada pt</code> vira seis carreiras, cada uma com o próprio contador. <code>Rows 5-10</code> também funciona.</li>
+      <li><strong>Contagem de pontos</strong>: um <code>(24 pts)</code>, <code>(24 pb)</code>, <code>(24)</code>, <code>[24]</code> ou <code>= 24 pts</code> no fim da linha define a meta da carreira.</li>
+      <li><strong>Repetições</strong>: <code>*…* repetir 6 vezes</code> (ou <code>6x</code>, <code>repeat 6 times</code>) mantém o trecho entre asteriscos como uma etapa só e define a meta de repetições.</li>
+      <li><strong>Partes</strong>: linhas curtas com inicial maiúscula, como <code>Corpo</code> ou <code>Manga esquerda:</code>, agrupam as carreiras seguintes.</li>
+      <li><strong>O resto</strong>: uma frase como <code>Arremate e esconda as pontas.</code> vira uma etapa simples para marcar. Uma linha que começa em minúscula continua a carreira de cima (útil em texto copiado de PDF).</li>
+      <li><strong>Etapas</strong>: cada carreira é dividida nas vírgulas para você tocar instrução por instrução.</li>
+      <li><strong>PDFs</strong>: o texto é extraído página por página e colocado na caixa para você revisar antes de importar. Gráficos e fotos são ignorados, PDFs escaneados não têm texto para ler, e um layout em duas colunas pode sair misturado; nesse caso copie o texto do seu leitor de PDF.</li>
+    </ul>
+    <div class="dialog-actions"><button class="btn primary" id="help-close" type="button">Entendi</button></div>
+  </div>
+</div>
+
+<!-- Comandos de voz -->
+<div class="overlay" id="dlg-voice" hidden>
+  <div class="dialog help" role="dialog" aria-labelledby="voice-title" lang="pt-BR">
+    <h3 id="voice-title">Comandos de voz</h3>
+    <p>Diga a palavra de ativação e o comando, por exemplo <b>«Novelo, acabei de fazer o terceiro aumento»</b>. O reconhecimento usa o serviço de voz do navegador (Chrome, Edge ou Safari) e pede permissão do microfone.</p>
+    <p id="voice-support" hidden></p>
+    <div class="field"><label for="voice-wake">Palavra de ativação</label><input type="text" id="voice-wake" placeholder="Novelo" autocomplete="off"></div>
+    <label class="check-row"><input type="checkbox" id="voice-feedback" checked> Responder em voz (confirma o número e lê a próxima carreira)</label>
+    <ul class="cmds">
+      <li><b>mais um</b>, <b>mais três pontos</b>, <b>menos um</b>: soma ou tira pontos.</li>
+      <li><b>ponto doze</b> ou <b>estou no ponto doze</b>: define o total de pontos.</li>
+      <li><b>fiz um aumento</b>, <b>mais uma repetição</b>: soma uma repetição.</li>
+      <li><b>terceiro aumento</b>, <b>quinta repetição</b>: define a repetição atual.</li>
+      <li><b>carreira concluída</b>, <b>terminei</b>, <b>próxima</b>: conclui e passa para a próxima.</li>
+      <li><b>voltar</b> ou <b>anterior</b>: volta uma carreira.</li>
+      <li><b>ler</b> ou <b>o que eu faço</b>: lê a carreira atual em voz alta.</li>
+      <li><b>zerar</b>: zera os pontos desta carreira.</li>
+      <li><b>parar</b>: desliga a escuta.</li>
+    </ul>
+    <div class="dialog-actions">
+      <button class="btn ghost" id="voice-close" type="button">Fechar</button>
+      <span class="spacer"></span>
+      <button class="btn primary" id="voice-toggle" type="button">Começar a ouvir</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+(function(){
+'use strict';
+const STORE='hookrow.v1';
+const $=s=>document.querySelector(s);
+const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+
+/* ---------- Interpretação da receita (português e inglês) ---------- */
+const ST_TERMS=/\b(sc|dc|hdc|tr|dtr|ch|sl\s?st|sts?|inc|dec|yo|blo|flo|fpdc|bpdc|rep|sk|skip|join|magic ring|mr|stitch(es)?|pb|pa|mpa|pad|pat|pbx|corr|corrente|correntinha|aum|dim|pts?|pontos?|anel m[áa]gico|am)\b/i;
+const ROW_RE=/^(rows?|rounds?|rnds?|r|carreiras?|carr|voltas?|vlts?|rodadas?|rd|fileiras?)\s*\.?\s*(\d+)(?:\s*(?:-|–|—|to|through|thru|&|and|a|à|até|e)\s*(\d+))?\s*(\([^)]*\))?\s*(?:[:.\-–—]|\s)\s*(.*)$/i;
+const NUM_RE=/^(\d+)\s*[.):\-–]\s+(.*)$/;
+const COUNT_WORDS=/(sts?|stitches|stitch|sc|dc|hdc|tr|dtr|pts?|pontos?|pb|pa|mpa|pbx|corr)\b/i;
+const KIND_RND=/^(r(ou)?nd|voltas?|vlts?|rodadas?|rd)$/i;
+
+function parseTarget(text){
+  let m=text.match(/\(([^()]*)\)\s*\.?\s*$/);
+  if(m){const n=m[1].match(/(\d+)\s*(?:sts?|stitches|stitch|sc|dc|hdc|tr|dtr|pts?|pontos?|pb|pa|mpa|pbx|corr)?\b/i);if(n)return +n[1];}
+  m=text.match(/\[(\d+)[^\]]*\]\s*\.?\s*$/);if(m)return +m[1];
+  m=text.match(/(?:=|—|–|-|,|total:?)\s*(\d+)\s*(?:sts?|stitches|pts?|pontos?)\s*\.?\s*$/i);if(m)return +m[1];
+  return null;
+}
+function parseRepeat(text){
+  let m=text.match(/\brep(?:eat|etir|ita|ete)?\.?\b[^.*]*?(\d+)\s*(?:more\s+)?(?:times?|vezes|vez|x)\b/i);if(m)return +m[1];
+  m=text.match(/(\d+)\s*(?:more\s+)?(?:times?|vezes|vez)\b/i);if(m)return +m[1];
+  m=text.match(/\bx\s?(\d+)\b|\b(\d+)\s?x\b/i);if(m)return +(m[1]||m[2]);
+  return null;
+}
+function stripCount(text){
+  return text
+    .replace(/\s*\(([^()]*)\)\s*\.?\s*$/,(m,inner)=>(/\d/.test(inner)&&COUNT_WORDS.test(inner))||/^\s*\d+\s*$/.test(inner)?'':m)
+    .replace(/\s*\[\d+[^\]]*\]\s*\.?\s*$/,'')
+    .replace(/\s*(?:=|—|–|-|,|total:?)\s*\d+\s*(?:sts?|stitches|pts?|pontos?)\s*\.?\s*$/i,'')
+    .trim();
+}
+function splitSteps(text){
+  const out=[];let cur='',depth=0,star=false;
+  for(const ch of text){
+    if(ch==='('||ch==='[')depth++;
+    else if(ch===')'||ch===']')depth=Math.max(0,depth-1);
+    else if(ch==='*')star=!star;
+    if((ch===','||ch===';')&&depth===0&&!star){if(cur.trim())out.push(cur.trim());cur='';continue;}
+    cur+=ch;
+  }
+  if(cur.trim())out.push(cur.trim());
+  return out.map(s=>s.replace(/\.$/,'').trim()).filter(Boolean).slice(0,60);
+}
+const SMALL_WORDS=/^(of|the|and|for|to|a|an|in|with|&|-|–|de|da|do|das|dos|e|para|com|em|o|os|as|ou|no|na|nos|nas)$/i;
+function isHeading(line){
+  if(line.length>60)return false;
+  if(/[.!?]$/.test(line))return false;
+  if(/:$/.test(line))return true;
+  const words=line.split(/\s+/);
+  if(words.length>6)return false;
+  if(line===line.toUpperCase()&&/\p{Lu}/u.test(line))return true;
+  return words.every(w=>/^[\p{Lu}0-9("']/u.test(w)||SMALL_WORDS.test(w));
+}
+function labelFor(r,short){
+  if(r.kind==='note')return 'Etapa';
+  if(r.kind==='rnd')return 'Volta '+r.num;
+  return (short?'Carr. ':'Carreira ')+r.num;
+}
+function makeRow(section,kind,num,body){
+  return {section,kind,num,text:body,target:parseTarget(body),repeat:parseRepeat(body),steps:splitSteps(stripCount(body))};
+}
+function parsePattern(text){
+  const lines=text.replace(/ /g,' ').split(/\r?\n/).map(l=>l.trim());
+  const rows=[],intro=[];let section='',title='',lastBatch=null;
+  for(const line of lines){
+    if(!line){lastBatch=null;continue;}
+    let m=ROW_RE.exec(line),kind=null,a,b,body;
+    if(m){kind=KIND_RND.test(m[1])?'rnd':'row';a=+m[2];b=m[3]?+m[3]:a;body=((m[4]||'')+' '+m[5]).trim();}
+    else if((m=NUM_RE.exec(line))&&ST_TERMS.test(m[2])){kind='row';a=b=+m[1];body=m[2];}
+    if(kind){
+      if(b<a)[a,b]=[b,a];
+      if(b-a>300)b=a+300;
+      const batch=[];
+      for(let n=a;n<=b;n++)batch.push(makeRow(section,kind,n,body));
+      const ref=body.match(/^(?:rep(?:eat|etir|ita)?\.?|same as|work as(?: for)?|igual (?:à|a)|como (?:a|na))\s+(?:row|rnd|round|carr(?:eira)?\.?|volta|vlt|rodada)s?\s+(\d+)/i);
+      if(ref&&batch[0].target==null){const r=rows.find(x=>x.num===+ref[1]&&x.kind!=='note');if(r)batch.forEach(x=>{x.target=r.target;});}
+      rows.push(...batch);lastBatch=batch;continue;
+    }
+    if(isHeading(line)){
+      if(rows.length===0&&!title&&!section)title=line;
+      else section=line.replace(/:$/,'').trim();
+      lastBatch=null;continue;
+    }
+    if(lastBatch&&(/^[\p{Ll}0-9(*\[]/u.test(line)||lastBatch[0].text==='')){
+      lastBatch.forEach(r=>{const t=(r.text+' '+line).trim();Object.assign(r,makeRow(r.section,r.kind,r.num,t));});
+      continue;
+    }
+    if(rows.length===0){intro.push(line);continue;}
+    rows.push(makeRow(section,'note',null,line));lastBatch=null;
+  }
+  return {rows,intro:intro.join(' '),title};
+}
+
+/* ---------- Exemplos ---------- */
+const SAMPLE_BEANIE=`Gorro Soltinho
+Receita de exemplo. Fio de espessura média, agulha 5 mm. Trabalhado em espiral; use um marcador no primeiro ponto de cada volta.
+
+Topo
+Volta 1: faça um anel mágico, 8 pb dentro do anel, puxe para fechar. (8 pts)
+Volta 2: 2 pb em cada pt ao redor. (16 pts)
+Volta 3: *1 pb no próximo pt, 2 pb no próximo pt* repetir 8 vezes. (24 pts)
+Volta 4: *1 pb nos próximos 2 pts, 2 pb no próximo pt* repetir 8 vezes. (32 pts)
+Volta 5: *1 pb nos próximos 3 pts, 2 pb no próximo pt* repetir 8 vezes. (40 pts)
+Volta 6: *1 pb nos próximos 4 pts, 2 pb no próximo pt* repetir 8 vezes. (48 pts)
+Volta 7: *1 pb nos próximos 5 pts, 2 pb no próximo pt* repetir 8 vezes. (56 pts)
+Volta 8: *1 pb nos próximos 6 pts, 2 pb no próximo pt* repetir 8 vezes. (64 pts)
+
+Corpo
+Voltas 9 a 30: 1 pb em cada pt ao redor. (64 pts)
+
+Aba
+Volta 31: 1 corr, *1 pa em relevo pela frente no próximo pt, 1 pa em relevo por trás no próximo pt* repetir 32 vezes, feche com pbx. (64 pts)
+Voltas 32 a 35: 1 corr, *1 pa em relevo pela frente, 1 pa em relevo por trás* repetir 32 vezes, feche com pbx. (64 pts)
+Arremate e esconda as pontas.`;
+
+const SAMPLE_GRANNY=`Quadrado de Vovó Clássico
+Receita de exemplo. Qualquer fio com a agulha correspondente. Troque de cor no início de cada volta, se quiser.
+
+Volta 1: 4 corr, feche com pbx formando um anel, 3 corr (conta como 1 pa), 2 pa no anel, 2 corr, *3 pa no anel, 2 corr* repetir 3 vezes, feche com pbx no topo da 3ª corr. (12 pa)
+Volta 2: pbx até o próximo espaço de 2 corr, 3 corr, 2 pa, 2 corr, 3 pa no mesmo espaço, 1 corr, *3 pa, 2 corr, 3 pa no próximo espaço de 2 corr, 1 corr* repetir 3 vezes, feche. (24 pa)
+Volta 3: pbx até o próximo espaço de 2 corr, 3 corr, 2 pa, 2 corr, 3 pa no canto, 1 corr, 3 pa no próximo espaço de 1 corr, 1 corr, *3 pa, 2 corr, 3 pa no canto, 1 corr, 3 pa no espaço de 1 corr, 1 corr* repetir 3 vezes, feche. (36 pa)
+Volta 4: pbx até o próximo espaço de 2 corr, 3 corr, 2 pa, 2 corr, 3 pa no canto, 1 corr, (3 pa no próximo espaço de 1 corr, 1 corr) 2 vezes, *3 pa, 2 corr, 3 pa no canto, 1 corr, (3 pa no espaço de 1 corr, 1 corr) 2 vezes* repetir 3 vezes, feche. (48 pa)
+Arremate e esconda as pontas. Bloqueie em um quadrado de 15 cm.`;
+
+/* ---------- Estado ---------- */
+let state={patterns:[],activeId:null};
+function migrate(s){
+  // v1 salvava rótulos em inglês ("Rnd 1"); agora o tipo é 'row' | 'rnd' | 'note' e o rótulo é calculado.
+  for(const p of s.patterns){
+    for(const r of p.rows||[]){
+      if(r.kind==='Rnd')r.kind='rnd';else if(r.kind==='Row')r.kind='row';else if(r.kind==='Note')r.kind='note';
+      delete r.label;
+    }
+  }
+  if(!s.lang){
+    // troca os exemplos em inglês pelos em português, mantendo as receitas da pessoa
+    const had=s.patterns.filter(p=>p.example).length;
+    s.patterns=s.patterns.filter(p=>!p.example);
+    if(had){s.patterns.push(createPattern('',SAMPLE_BEANIE,true),createPattern('',SAMPLE_GRANNY,true));}
+    if(!s.patterns.some(p=>p.id===s.activeId))s.activeId=s.patterns[0]?s.patterns[0].id:null;
+    s.lang='pt-BR';
+  }
+  return s;
+}
+function load(){
+  let raw=null;
+  try{raw=localStorage.getItem(STORE);}catch(e){}
+  if(raw){try{const s=JSON.parse(raw);if(s&&Array.isArray(s.patterns))state=migrate(s);}catch(e){}}
+  else{
+    state.patterns=[createPattern('',SAMPLE_BEANIE,true),createPattern('',SAMPLE_GRANNY,true)];
+    state.activeId=state.patterns[0].id;state.lang='pt-BR';
+  }
+  save();
+}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}}
+function createPattern(name,text,example){
+  const parsed=parsePattern(text);
+  return {id:uid(),name:(name||parsed.title||'Receita sem nome').trim(),text,intro:parsed.intro,rows:parsed.rows,example:!!example,created:Date.now(),cur:0,done:{},st:{},rep:{},stepsDone:{},notes:{}};
+}
+const active=()=>state.patterns.find(p=>p.id===state.activeId)||null;
+const doneCount=p=>p.rows.reduce((n,_,i)=>n+(p.done[i]?1:0),0);
+const plural=(n,one,many)=>n+' '+(n===1?one:many);
+
+/* ---------- Renderização ---------- */
+const app=$('#app'),work=$('#work');
+function setView(v){app.dataset.view=v;}
+
+function renderLibrary(){
+  const list=$('#pattern-list');list.textContent='';
+  if(!state.patterns.length){list.appendChild(el('li','pl-meta','Nenhuma receita ainda.'));return;}
+  for(const p of state.patterns){
+    const li=el('li');
+    const b=el('button','pl-item'+(p.id===state.activeId?' active':''));b.type='button';
+    const name=el('div','pl-name');name.appendChild(el('span',null,p.name));
+    if(p.example)name.appendChild(el('span','ex','exemplo'));
+    const d=doneCount(p),t=p.rows.length,pct=t?Math.round(d/t*100):0;
+    const cur=p.rows[p.cur];
+    const meta=el('div','pl-meta',t?(d===t?'Concluída · '+plural(t,'etapa','etapas'):(cur?labelFor(cur,true):'')+' de '+t+' · '+pct+'%'):'Nenhuma carreira encontrada');
+    const bar=el('div','bar'+(d===t&&t?' full':''));const fill=el('span');fill.style.width=pct+'%';bar.appendChild(fill);
+    b.append(name,meta,bar);
+    b.addEventListener('click',()=>{state.activeId=p.id;save();renderAll();setView('pattern');work.scrollTop=0;});
+    li.appendChild(b);list.appendChild(li);
+  }
+}
+
+function renderNow(){
+  const p=active();if(!p||!p.rows.length)return;
+  const i=p.cur,row=p.rows[i];
+  const d=doneCount(p),t=p.rows.length,pct=Math.round(d/t*100);
+  $('#p-name').textContent=p.name;
+  $('#p-bar').style.width=pct+'%';$('#p-barwrap').classList.toggle('full',d===t);
+  $('#p-pct').textContent=d+' / '+t+' etapas · '+pct+'%';
+  $('#now-section').textContent=row.section||(row.kind==='note'?'Acabamento':'Receita');
+  $('#now-label').textContent=labelFor(row,false);
+  $('#now-done').hidden=!p.done[i];
+  $('#now-text').textContent=row.text;
+  const steps=$('#steps');steps.textContent='';
+  const sd=p.stepsDone[i]||{};
+  row.steps.forEach((s,k)=>{
+    const b=el('button','step'+(sd[k]?' on':''),s);b.type='button';b.setAttribute('aria-pressed',sd[k]?'true':'false');
+    b.addEventListener('click',()=>{const m=p.stepsDone[i]||(p.stepsDone[i]={});m[k]=!m[k];save();renderNow();});
+    steps.appendChild(b);
+  });
+  $('#steps-hint').hidden=row.steps.length<2;
+  const st=p.st[i]||0;
+  $('#st-count').value=st;
+  $('#st-target').textContent=row.target?'de '+row.target:'sem contagem na receita';
+  $('#st-counter').classList.toggle('reached',!!row.target&&st>=row.target);
+  const rp=p.rep[i]||0;
+  $('#rep-count').value=rp;
+  $('#rep-target').textContent=row.repeat?'de '+row.repeat:'';
+  $('#rep-counter').classList.toggle('reached',!!row.repeat&&rp>=row.repeat);
+  $('#btn-prev').disabled=i===0;
+  const noun=row.kind==='rnd'?'Volta':row.kind==='note'?'Etapa':'Carreira';
+  $('#btn-done').textContent=i===t-1?(p.done[i]?'Receita concluída':'Concluir receita'):(p.done[i]?'Próxima ›':noun+' concluída ›');
+  $('#btn-done').classList.toggle('ready',!!row.target&&st>=row.target&&!p.done[i]);
+  const next=p.rows[i+1];
+  $('#next-up').textContent=next?'Depois: '+labelFor(next,true)+' · '+next.text:(d===t?'Todas as etapas concluídas. Bom trabalho.':'Esta é a última etapa.');
+  $('#row-note').value=p.notes[i]||'';
+  document.querySelectorAll('#rows .row').forEach(r=>{
+    const k=+r.dataset.i;
+    r.classList.toggle('current',k===i);r.classList.toggle('done',!!p.done[k]);
+    const c=r.querySelector('.cnt');if(c)c.textContent=cntText(p,k);
+    const n=r.querySelector('.row-note');if(n){n.textContent=p.notes[k]||'';n.hidden=!p.notes[k];}
+  });
+  renderLibrary();
+}
+function cntText(p,k){const r=p.rows[k];const s=p.st[k]||0;if(r.target)return s+' / '+r.target+' pts';if(s)return s+' pts';return '';}
+
+function renderList(){
+  const p=active();const box=$('#rows');box.textContent='';if(!p)return;
+  let lastSection=null;
+  p.rows.forEach((r,k)=>{
+    if(r.section!==lastSection||k===0){
+      lastSection=r.section;
+      const count=p.rows.filter(x=>x.section===r.section).length;
+      const h=el('h3','section-title',r.section||(k===0?'Carreiras':'Mais'));h.appendChild(el('small',null,plural(count,'etapa','etapas')));
+      box.appendChild(h);
+    }
+    const d=el('div','row'+(k===p.cur?' current':'')+(p.done[k]?' done':''));d.dataset.i=k;
+    const lbl=labelFor(r,true);
+    const chk=el('button','check','✓');chk.type='button';chk.setAttribute('aria-label',(p.done[k]?'Desmarcar '+lbl:'Marcar '+lbl+' como concluída'));
+    chk.addEventListener('click',()=>{p.done[k]=!p.done[k];if(p.done[k]&&r.target&&!(p.st[k]>=r.target))p.st[k]=r.target;save();renderNow();});
+    const main=el('button','row-main');main.type='button';
+    const lblEl=el('div','lbl');lblEl.appendChild(el('span',null,lbl));lblEl.appendChild(el('span','cnt',cntText(p,k)));
+    const note=el('div','row-note',p.notes[k]||'');note.hidden=!p.notes[k];
+    main.append(lblEl,el('div','row-text',r.text),note);
+    main.addEventListener('click',()=>{p.cur=k;save();renderNow();work.scrollTo({top:0,behavior:'smooth'});});
+    d.append(chk,main);box.appendChild(d);
+  });
+}
+
+function renderAll(){
+  const p=active();
+  $('#empty').hidden=!!p;$('#pattern').hidden=!p;
+  if(p){
+    $('#about').hidden=!p.intro;$('#about-text').textContent=p.intro||'';
+    if(!p.rows.length){p.rows=[makeRow('','note',null,'Esta receita não tem carreiras. Use "Editar texto da receita" para colar as instruções.')];}
+    if(p.cur>=p.rows.length)p.cur=0;
+    renderList();renderNow();
+  }
+  renderLibrary();
+}
+
+/* ---------- Ações ---------- */
+let wake=null;
+async function keepAwake(){
+  try{if(!wake&&navigator.wakeLock&&document.visibilityState==='visible'){wake=await navigator.wakeLock.request('screen');wake.addEventListener('release',()=>{wake=null;});}}catch(e){}
+}
+function bump(key,delta){
+  const p=active();if(!p)return;const i=p.cur;
+  p[key][i]=Math.max(0,(p[key][i]||0)+delta);
+  save();renderNow();keepAwake();
+}
+function rowDone(){
+  const p=active();if(!p)return;const i=p.cur,r=p.rows[i];
+  if(!p.done[i]){p.done[i]=true;if(r.target&&!(p.st[i]>=r.target))p.st[i]=r.target;}
+  if(i<p.rows.length-1)p.cur=i+1;
+  save();renderNow();
+  if(doneCount(p)===p.rows.length)toast('Receita concluída. Hora de bloquear.');
+  else toast(labelFor(r,false)+' concluída');
+  keepAwake();
+}
+function prevRow(){const p=active();if(!p||p.cur===0)return;p.cur--;save();renderNow();}
+
+let toastTimer=null;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},1800);}
+
+$('#st-plus').addEventListener('click',()=>bump('st',1));
+$('#st-minus').addEventListener('click',()=>bump('st',-1));
+$('#rep-plus').addEventListener('click',()=>bump('rep',1));
+$('#rep-minus').addEventListener('click',()=>bump('rep',-1));
+$('#btn-done').addEventListener('click',rowDone);
+$('#btn-prev').addEventListener('click',prevRow);
+$('#btn-back-lib').addEventListener('click',()=>setView('library'));
+$('#row-note').addEventListener('input',e=>{const p=active();if(!p)return;p.notes[p.cur]=e.target.value;save();
+  const r=document.querySelector('#rows .row[data-i="'+p.cur+'"] .row-note');if(r){r.textContent=e.target.value;r.hidden=!e.target.value;}});
+
+document.addEventListener('keydown',e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(!active()||$('#pattern').hidden||openDialog)return;
+  if(e.key==='+'||e.key==='='||e.key==='ArrowRight'){e.preventDefault();bump('st',1);}
+  else if(e.key==='-'||e.key==='ArrowLeft'){e.preventDefault();bump('st',-1);}
+  else if(e.key==='Enter'){e.preventDefault();rowDone();}
+  else if(e.key==='Backspace'){e.preventDefault();prevRow();}
+});
+
+/* Menu */
+const menu=$('#menu'),menuBtn=$('#btn-menu');
+function closeMenu(){menu.hidden=true;menuBtn.setAttribute('aria-expanded','false');resetConfirm();}
+menuBtn.addEventListener('click',e=>{e.stopPropagation();menu.hidden=!menu.hidden;menuBtn.setAttribute('aria-expanded',String(!menu.hidden));});
+document.addEventListener('click',e=>{if(!menu.hidden&&!menu.contains(e.target))closeMenu();});
+let pendingConfirm=null;
+function resetConfirm(){if(pendingConfirm){pendingConfirm.el.textContent=pendingConfirm.label;pendingConfirm=null;}}
+function confirmTwice(btn,label,fn){
+  if(pendingConfirm&&pendingConfirm.el===btn){resetConfirm();fn();return;}
+  resetConfirm();pendingConfirm={el:btn,label:btn.textContent};btn.textContent=label;
+}
+menu.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;e.stopPropagation();
+  const p=active();if(!p)return;
+  const act=b.dataset.act;
+  if(act==='rename'){closeMenu();$('#ren-name').value=p.name;show('#dlg-rename');$('#ren-name').focus();}
+  else if(act==='edit'){closeMenu();openImport(p);}
+  else if(act==='reset'){confirmTwice(b,'Zerar mesmo? Toque de novo',()=>{p.cur=0;p.done={};p.st={};p.rep={};p.stepsDone={};save();renderAll();closeMenu();toast('Progresso zerado');});}
+  else if(act==='delete'){confirmTwice(b,'Excluir mesmo? Toque de novo',()=>{state.patterns=state.patterns.filter(x=>x.id!==p.id);state.activeId=state.patterns[0]?state.patterns[0].id:null;save();renderAll();closeMenu();toast('Receita excluída');if(!state.activeId)setView('library');});}
+});
+
+/* Janelas */
+let openDialog=null;
+function show(sel){openDialog=sel;$(sel).hidden=false;}
+function hide(){if(openDialog){$(openDialog).hidden=true;openDialog=null;}}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)hide();}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&openDialog)hide();});
+
+let editing=null;
+function openImport(p){
+  editing=p||null;
+  $('#imp-name').value=p?p.name:'';$('#imp-text').value=p?p.text:'';
+  $('#imp-warn').hidden=!p;$('#imp-go').textContent=p?'Reimportar':'Importar';
+  updatePreview();show('#dlg-import');$('#imp-text').focus();
+}
+function updatePreview(){
+  const text=$('#imp-text').value;
+  if(!text.trim()){$('#imp-preview').textContent='';return;}
+  const parsed=parsePattern(text);
+  const sections=new Set(parsed.rows.map(r=>r.section).filter(Boolean)).size;
+  const rows=parsed.rows.filter(r=>r.kind!=='note').length,notes=parsed.rows.length-rows;
+  const counted=parsed.rows.filter(r=>r.target).length;
+  $('#imp-preview').textContent=rows?('Encontrei '+plural(rows,'carreira','carreiras')+(sections?' em '+plural(sections,'parte','partes'):'')+(notes?', mais '+plural(notes,'etapa extra','etapas extras'):'')+'. '+counted+' com contagem de pontos.'):'Nenhuma carreira encontrada ainda. Cada carreira precisa começar com algo como "Carreira 1:" ou "Volta 1".';
+}
+$('#imp-text').addEventListener('input',updatePreview);
+$('#btn-import').addEventListener('click',()=>openImport());
+$('#btn-import-2').addEventListener('click',()=>openImport());
+$('#imp-cancel').addEventListener('click',hide);
+$('#imp-sample').addEventListener('click',()=>{$('#imp-text').value=$('#imp-text').value.trim()===SAMPLE_BEANIE?SAMPLE_GRANNY:SAMPLE_BEANIE;$('#imp-name').value='';updatePreview();});
+
+/* Extração de texto de PDF (pdf.js, carregado só quando um PDF é aberto) */
+const PDFJS_BASE='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let pdfjsReady=null;
+function loadPdfJs(){
+  if(window.pdfjsLib)return Promise.resolve();
+  if(pdfjsReady)return pdfjsReady;
+  pdfjsReady=new Promise((res,rej)=>{
+    const s=document.createElement('script');s.src=PDFJS_BASE+'pdf.min.js';
+    s.onload=()=>{try{window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_BASE+'pdf.worker.min.js';res();}catch(err){rej(err);}};
+    s.onerror=()=>{pdfjsReady=null;rej(new Error('Não foi possível baixar o leitor de PDF. Verifique a conexão e tente de novo.'));};
+    document.head.appendChild(s);
+  });
+  return pdfjsReady;
+}
+function itemsToText(items){
+  const lines=[];
+  for(const it of items){
+    if(!it.str||!it.transform)continue;
+    const x=it.transform[4],y=it.transform[5],h=Math.abs(it.transform[3])||it.height||10;
+    let line=null;
+    for(const l of lines){if(Math.abs(l.y-y)<=Math.max(2,h*0.45)){line=l;break;}}
+    if(!line){line={y,items:[]};lines.push(line);}
+    line.items.push({x,str:it.str,w:it.width||0});
+  }
+  lines.sort((a,b)=>b.y-a.y);
+  return lines.map(l=>{
+    l.items.sort((a,b)=>a.x-b.x);
+    let out='',prevEnd=null;
+    for(const t of l.items){
+      if(prevEnd!==null){
+        const gap=t.x-prevEnd,cw=t.str.trim().length?t.w/t.str.length:3;
+        if(gap>cw*0.25&&!out.endsWith(' ')&&!t.str.startsWith(' '))out+=' ';
+      }
+      out+=t.str;prevEnd=t.x+t.w;
+    }
+    return out.replace(/\s+/g,' ').trim();
+  }).filter(Boolean).join('\n');
+}
+async function pdfToText(file,onProgress){
+  await loadPdfJs();
+  const data=new Uint8Array(await file.arrayBuffer());
+  const doc=await window.pdfjsLib.getDocument({data,cMapUrl:PDFJS_BASE+'cmaps/',cMapPacked:true,standardFontDataUrl:PDFJS_BASE+'standard_fonts/'}).promise;
+  const pages=[];
+  try{
+    for(let n=1;n<=doc.numPages;n++){
+      if(onProgress)onProgress(n,doc.numPages);
+      const page=await doc.getPage(n);
+      const tc=await page.getTextContent();
+      pages.push(itemsToText(tc.items));
+      page.cleanup();
+    }
+  }finally{try{doc.destroy();}catch(err){}}
+  return pages.join('\n\n');
+}
+window.hookrow={pdfToText,parsePattern};
+
+$('#imp-file').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+  const base=f.name.replace(/\.(txt|pdf)$/i,'');
+  const isPdf=/\.pdf$/i.test(f.name)||f.type==='application/pdf';
+  if(!isPdf){
+    const rd=new FileReader();rd.onload=()=>{$('#imp-text').value=String(rd.result||'');if(!$('#imp-name').value)$('#imp-name').value=base;updatePreview();};rd.readAsText(f);
+    return;
+  }
+  const go=$('#imp-go'),prev=$('#imp-preview');go.disabled=true;
+  prev.textContent='Lendo '+f.name+'…';
+  pdfToText(f,(n,total)=>{prev.textContent='Lendo página '+n+' de '+total+'…';}).then(text=>{
+    if(!text.trim()){prev.textContent='Nenhum texto encontrado nesse PDF. Pode ser um arquivo escaneado; copie o texto do seu leitor de PDF.';return;}
+    $('#imp-text').value=text;if(!$('#imp-name').value)$('#imp-name').value=base;
+    updatePreview();prev.textContent='Texto do PDF carregado. '+prev.textContent;
+  }).catch(err=>{
+    const msg=err&&/password|senha/i.test(String(err.message||err.name))?'Esse PDF tem senha. Remova a senha e tente de novo.':(err&&err.message)||'Não foi possível ler esse PDF.';
+    prev.textContent=msg;
+  }).finally(()=>{go.disabled=false;});
+});
+
+$('#imp-go').addEventListener('click',()=>{
+  const text=$('#imp-text').value;
+  if(!text.trim()){$('#imp-preview').textContent='Cole o texto da receita primeiro.';return;}
+  if(editing){
+    const fresh=createPattern($('#imp-name').value||editing.name,text,false);
+    Object.assign(editing,{name:fresh.name,text,intro:fresh.intro,rows:fresh.rows,example:false,cur:0,done:{},st:{},rep:{},stepsDone:{},notes:{}});
+    toast('Receita reimportada');
+  }else{
+    const p=createPattern($('#imp-name').value,text,false);
+    state.patterns.unshift(p);state.activeId=p.id;
+    toast(plural(p.rows.length,'etapa pronta','etapas prontas'));
+  }
+  save();hide();renderAll();setView('pattern');work.scrollTop=0;
+});
+
+$('#ren-cancel').addEventListener('click',hide);
+$('#ren-go').addEventListener('click',()=>{const p=active();const v=$('#ren-name').value.trim();if(p&&v){p.name=v;save();renderAll();}hide();});
+$('#ren-name').addEventListener('keydown',e=>{if(e.key==='Enter')$('#ren-go').click();});
+
+$('#btn-backup').addEventListener('click',()=>{$('#bk-out').value=JSON.stringify(state);$('#bk-in').value='';$('#bk-restore').textContent='Substituir tudo por este backup';show('#dlg-backup');});
+$('#bk-close').addEventListener('click',hide);
+$('#bk-copy').addEventListener('click',()=>{
+  const ta=$('#bk-out');
+  const fallback=()=>{ta.focus();ta.select();toast('Selecione o texto e copie');};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(ta.value).then(()=>toast('Backup copiado'),fallback);else fallback();
+});
+$('#bk-restore').addEventListener('click',e=>{
+  let s=null;try{s=JSON.parse($('#bk-in').value);}catch(err){}
+  if(!s||!Array.isArray(s.patterns)){toast('Isso não é um backup do Hook & Row');return;}
+  confirmTwice(e.target,'Toque de novo para substituir '+plural(state.patterns.length,'receita','receitas'),()=>{
+    state=migrate(s);if(!state.patterns.some(p=>p.id===state.activeId))state.activeId=state.patterns[0]?state.patterns[0].id:null;
+    save();hide();renderAll();toast('Backup restaurado');
+  });
+});
+$('#btn-help').addEventListener('click',()=>show('#dlg-help'));
+$('#help-close').addEventListener('click',hide);
+
+/* ---------- Comandos de voz ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition||null;
+const voice={on:false,wake:'Novelo',feedback:true,rec:null,muted:false,timer:null};
+try{const v=JSON.parse(localStorage.getItem('hookrow.voice')||'null');if(v){if(typeof v.wake==='string')voice.wake=v.wake;if(typeof v.feedback==='boolean')voice.feedback=v.feedback;}}catch(e){}
+function saveVoice(){try{localStorage.setItem('hookrow.voice',JSON.stringify({wake:voice.wake,feedback:voice.feedback}));}catch(e){}}
+const norm=s=>String(s||'').toLowerCase().replace(/[º°]/g,'o').replace(/ª/g,'a').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+const NUM_WORDS={zero:0,um:1,uma:1,primeiro:1,primeira:1,dois:2,duas:2,segundo:2,segunda:2,tres:3,terceiro:3,terceira:3,quatro:4,quarto:4,quarta:4,cinco:5,quinto:5,quinta:5,seis:6,sexto:6,sexta:6,sete:7,setimo:7,setima:7,oito:8,oitavo:8,oitava:8,nove:9,nono:9,nona:9,dez:10,decimo:10,decima:10,onze:11,doze:12,treze:13,catorze:14,quatorze:14,quinze:15,dezesseis:16,dezessete:17,dezoito:18,dezenove:19,vinte:20,vigesimo:20,vigesima:20,trinta:30,trigesimo:30,trigesima:30,quarenta:40,quadragesimo:40,cinquenta:50,quinquagesimo:50,sessenta:60,setenta:70,oitenta:80,noventa:90,cem:100};
+const ORD=new Set(['primeiro','primeira','segundo','segunda','terceiro','terceira','quarto','quarta','quinto','quinta','sexto','sexta','setimo','setima','oitavo','oitava','nono','nona','decimo','decima','vigesimo','vigesima','trigesimo','trigesima','quadragesimo','quinquagesimo']);
+function findNumber(toks){
+  for(let i=0;i<toks.length;i++){
+    const m=/^(\d+)([oa])?$/.exec(toks[i]);if(m)return {n:+m[1],ordinal:!!m[2]};
+    if(toks[i] in NUM_WORDS){
+      let n=NUM_WORDS[toks[i]],ordinal=ORD.has(toks[i]),j=i+1;
+      if(n>=10&&n%10===0&&n<100){
+        if(toks[j]==='e')j++;
+        if(toks[j] in NUM_WORDS&&NUM_WORDS[toks[j]]<10&&NUM_WORDS[toks[j]]>0&&(n>=20||ORD.has(toks[i]))){n+=NUM_WORDS[toks[j]];ordinal=ordinal||ORD.has(toks[j]);}
+      }
+      return {n,ordinal};
+    }
+  }
+  return null;
+}
+function interpret(raw){
+  const t=norm(raw);if(!t)return null;
+  const toks=t.split(' ');
+  const has=re=>re.test(t);
+  const num=findNumber(toks);
+  if(has(/\b(parar|pare|para de ouvir|desligar|desliga|chega)\b/))return {type:'stop'};
+  const isRep=has(/\b(aumentos?|diminuicoes|diminuicao|dim|repeticoes|repeticao|rep|vez|vezes)\b/);
+  const isSt=has(/\bpontos?\b/);
+  if(has(/\b(ler|le|leia|repete|repita|o que eu faco|o que faco|qual (e )?a (carreira|volta)|onde estou|o que (e|vem) agora|de novo)\b/)&&!isRep&&!isSt)return {type:'read'};
+  if(has(/\b(voltar|anterior|volta uma|volta um)\b/)&&!has(/\bmais\b/))return {type:'prev'};
+  if(has(/\b(zerar|zera|recomecar|do zero)\b/))return {type:isRep?'rep':'st',set:0};
+  if(has(/\b(proxima|proximo|concluida|concluido|terminei|acabei a|acabei essa|acabei esta|fechei|pronta|pronto|feita|feito|concluir|fim da)\b/)&&!isRep&&!isSt)return {type:'done'};
+  const key=isRep?'rep':'st';
+  if(has(/\bmais\b/))return {type:key,delta:num?num.n:1};
+  if(has(/\bmenos\b/))return {type:key,delta:-(num?num.n:1)};
+  if(num){
+    if(num.n===1&&!num.ordinal)return {type:key,delta:1};
+    return {type:key,set:num.n};
+  }
+  if(isRep)return {type:'rep',delta:1};
+  if(isSt)return {type:'st',delta:1};
+  return null;
+}
+function afterWake(text){
+  const w=norm(voice.wake).replace(/\s/g,'');
+  const t=norm(text);if(!w)return t;
+  const toks=t.split(' ');
+  const like=(a,b)=>a===b||(a.length>=4&&b.length>=4&&a.slice(0,4)===b.slice(0,4)&&Math.abs(a.length-b.length)<=2);
+  for(let i=0;i<toks.length;i++){
+    for(let k=1;k<=3&&i+k<=toks.length;k++){
+      if(like(toks.slice(i,i+k).join(''),w))return toks.slice(i+k).join(' ');
+    }
+  }
+  return null;
+}
+const TTS_MAP={pb:'ponto baixo',pa:'ponto alto',mpa:'meio ponto alto',pad:'ponto alto duplo',pat:'ponto alto triplo',pbx:'ponto baixíssimo',corr:'correntinha',aum:'aumento',dim:'diminuição',pts:'pontos',pt:'ponto',rep:'repetir',sc:'ponto baixo',dc:'ponto alto',hdc:'meio ponto alto',ch:'correntinha',sts:'pontos',st:'ponto',inc:'aumento',dec:'diminuição'};
+function ttsText(s){return String(s||'').replace(/\*/g,' ').replace(/\b([a-z]{2,4})\b/gi,(m,w)=>TTS_MAP[w.toLowerCase()]||m).replace(/\s+/g,' ').trim();}
+function speak(text){
+  if(!voice.feedback||!('speechSynthesis'in window)||!text)return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);u.lang='pt-BR';u.rate=1.05;
+    const v=speechSynthesis.getVoices().find(x=>/^pt[-_]BR/i.test(x.lang));if(v)u.voice=v;
+    voice.muted=true;pauseRec();
+    const done=()=>{voice.muted=false;resumeRec();};
+    u.onend=done;u.onerror=done;
+    speechSynthesis.speak(u);
+    setTimeout(()=>{if(voice.muted){done();}},12000);
+  }catch(e){voice.muted=false;}
+}
+function readRow(p,r){
+  const st=p.st[p.cur]||0,rp=p.rep[p.cur]||0;
+  let s=labelFor(r,false)+'. '+ttsText(r.text)+'.';
+  if(r.target)s+=' Você está no ponto '+st+' de '+r.target+'.';
+  if(r.repeat)s+=' Repetição '+rp+' de '+r.repeat+'.';
+  return s;
+}
+function runCommand(a){
+  const p=active();if(!p)return 'Nenhuma receita aberta';
+  const i=p.cur,r=p.rows[i];
+  if(a.type==='stop'){stopVoice();return 'Parei de ouvir';}
+  if(a.type==='read')return readRow(p,r);
+  if(a.type==='prev'){prevRow();return labelFor(p.rows[p.cur],false);}
+  if(a.type==='done'){
+    const lbl=labelFor(r,false);rowDone();
+    const n=p.rows[p.cur];
+    return lbl+' concluída.'+(p.cur!==i?' Agora '+labelFor(n,false)+'. '+ttsText(n.text):' Receita concluída.');
+  }
+  const key=a.type;
+  let v=a.set!=null?a.set:(p[key][i]||0)+a.delta;v=Math.max(0,v);
+  p[key][i]=v;save();renderNow();keepAwake();
+  const tgt=key==='st'?r.target:r.repeat;
+  return (key==='rep'?'Repetição ':'')+v+(tgt?' de '+tgt:'');
+}
+function setVoiceStatus(msg,cls){
+  const s=$('#voice-status');s.textContent='';s.className='voice-status'+(cls?' '+cls:'');
+  if(!msg&&!voice.on){s.hidden=true;return;}
+  s.hidden=false;
+  if(msg)s.appendChild(el('span',null,msg));
+  const b=el('button','link','ajustes');b.type='button';b.addEventListener('click',openVoiceDialog);s.appendChild(b);
+}
+function listeningStatus(){setVoiceStatus('Ouvindo. Diga «'+(voice.wake||'')+(voice.wake?', ':'')+'mais um».','listening');}
+function handleTranscript(alts){
+  for(const alt of alts){
+    const cmd=afterWake(alt);
+    if(cmd===null)continue;
+    const a=interpret(cmd);
+    if(a){const said=runCommand(a);setVoiceStatus('Ouvi «'+alt.trim()+'»: '+said,'listening');speak(said);return;}
+  }
+  const first=alts[0]||'';
+  if(afterWake(first)!==null){setVoiceStatus('Não entendi «'+first.trim()+'». Veja os comandos em ajustes.','listening');speak('Não entendi');}
+  else setVoiceStatus('Ouvi «'+first.trim()+'» (sem a palavra de ativação)','listening');
+}
+function pauseRec(){clearTimeout(voice.timer);try{if(voice.rec)voice.rec.stop();}catch(e){}}
+function resumeRec(){if(voice.on&&!voice.muted){clearTimeout(voice.timer);voice.timer=setTimeout(()=>{try{voice.rec&&voice.rec.start();}catch(e){}},300);}}
+function startVoice(){
+  if(!SR){setVoiceStatus('Este navegador não tem reconhecimento de voz. Use Chrome, Edge ou Safari.','err');return false;}
+  if(!voice.rec){
+    const rec=new SR();rec.lang='pt-BR';rec.continuous=true;rec.interimResults=false;rec.maxAlternatives=3;
+    rec.onresult=e=>{
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const res=e.results[i];if(!res.isFinal)continue;
+        const alts=[];for(let k=0;k<res.length;k++)alts.push(res[k].transcript||'');
+        handleTranscript(alts);
+      }
+    };
+    rec.onerror=e=>{
+      const err=e.error||'';
+      if(err==='not-allowed'||err==='service-not-allowed'||err==='audio-capture')voice.lastErr=true;
+      if(err==='not-allowed'||err==='service-not-allowed'){voice.on=false;updateMic();setVoiceStatus('Permissão do microfone negada. Libere o microfone para este site nas configurações do navegador e tente de novo. (Dentro do visualizador do claude.ai o microfone não é liberado; abra a página direto no navegador.)','err');}
+      else if(err==='audio-capture'){voice.on=false;updateMic();setVoiceStatus('Nenhum microfone encontrado.','err');}
+      else if(err==='network'){setVoiceStatus('Sem conexão com o serviço de voz. Tentando de novo…','err');}
+    };
+    rec.onend=()=>{if(voice.on&&!voice.muted)resumeRec();else if(!voice.on&&!voice.lastErr)setVoiceStatus('',null);};
+    rec.onstart=()=>{if(voice.on&&!voice.muted)listeningStatus();};
+    voice.rec=rec;
+  }
+  voice.lastErr=false;
+  try{voice.rec.start();}catch(e){}
+  voice.on=true;updateMic();listeningStatus();keepAwake();
+  return true;
+}
+function stopVoice(){voice.on=false;voice.lastErr=false;clearTimeout(voice.timer);try{if(voice.rec)voice.rec.abort();}catch(e){}updateMic();setVoiceStatus('',null);}
+function updateMic(){const b=$('#btn-mic');b.classList.toggle('on',voice.on);b.setAttribute('aria-pressed',voice.on?'true':'false');$('#voice-toggle').textContent=voice.on?'Parar de ouvir':'Começar a ouvir';}
+function openVoiceDialog(){
+  $('#voice-wake').value=voice.wake;$('#voice-feedback').checked=voice.feedback;
+  const sup=$('#voice-support');
+  if(!SR){sup.hidden=false;sup.textContent='Este navegador não tem reconhecimento de voz. No celular, use o Chrome (Android) ou o Safari (iPhone).';}
+  else sup.hidden=true;
+  updateMic();show('#dlg-voice');
+}
+$('#btn-mic').addEventListener('click',()=>{if(voice.on)stopVoice();else openVoiceDialog();});
+$('#voice-close').addEventListener('click',hide);
+$('#voice-toggle').addEventListener('click',()=>{if(voice.on){stopVoice();}else{if(startVoice())hide();}});
+$('#voice-wake').addEventListener('input',e=>{voice.wake=e.target.value.trim();saveVoice();if(voice.on)listeningStatus();});
+$('#voice-feedback').addEventListener('change',e=>{voice.feedback=e.target.checked;saveVoice();});
+if('speechSynthesis'in window){try{speechSynthesis.getVoices();}catch(e){}}
+window.hookrow.interpret=interpret;window.hookrow.afterWake=afterWake;window.hookrow.ttsText=ttsText;
+
+/* ---------- Início ---------- */
+load();
+renderAll();
+setView(active()?'pattern':'library');
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&wake===null&&active())keepAwake();});
+})();
+</script>
