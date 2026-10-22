@@ -89,6 +89,14 @@ kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(
 .steps{display:flex;flex-wrap:wrap;gap:8px}
 .step{min-height:40px;padding:8px 13px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);text-align:left;font-size:.95rem;line-height:1.3}
 .step.on{background:var(--done-soft);border-color:var(--done);text-decoration:line-through;text-decoration-color:var(--done);color:var(--muted)}
+.step.active{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700;box-shadow:0 0 0 4px var(--accent-soft)}
+.step .n{font-size:.78rem;color:var(--muted);margin-left:8px;font-variant-numeric:tabular-nums;font-weight:400}
+.step.active .n{color:var(--accent-fg);font-weight:700}
+.rep-group{flex-basis:100%;border:1px dashed var(--line);border-radius:14px;padding:8px 10px;display:grid;gap:8px}
+.rep-group.done{opacity:.55}
+.rep-head{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.rep-steps{display:flex;flex-wrap:wrap;gap:8px}
+.dock-now{font-size:.95rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.3em}
 .steps-hint{font-size:.78rem;color:var(--muted);margin-top:6px}
 .next-up{font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .note summary{cursor:pointer;font-size:.9rem;font-weight:700;color:var(--muted);min-height:36px;display:flex;align-items:center}
@@ -249,7 +257,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
         <p class="now-text" id="now-text"></p>
         <div>
           <div class="steps" id="steps"></div>
-          <p class="steps-hint" id="steps-hint">Toque em cada instrução conforme for terminando.</p>
+          <p class="steps-hint" id="steps-hint">Toque na instrução destacada a cada ponto feito; ela passa sozinha para a próxima. Toque em outra instrução para pular até ela.</p>
         </div>
         <p class="next-up" id="next-up"></p>
         <details class="note">
@@ -267,20 +275,21 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
           <div class="dock-top">
             <div class="dock-left">
               <button class="mini mic" id="btn-mic" type="button" aria-label="Comandos de voz" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg></button>
-              <span class="dock-lbl">Pontos</span> <span class="target" id="st-target"></span>
+              <span class="dock-lbl">Ponto</span> <span class="target" id="st-target"></span>
             </div>
-            <div class="dock-rep" id="rep-counter">
-              <span class="dock-lbl">Repetições</span>
-              <button class="mini" id="rep-minus" type="button" aria-label="Uma repetição a menos">&minus;</button>
+            <div class="dock-rep" id="rep-counter" hidden>
+              <span class="dock-lbl">Repetição</span>
+              <button class="mini" id="rep-minus" type="button" aria-label="Voltar uma repetição">&minus;</button>
               <output id="rep-count" for="rep-plus rep-minus">0</output>
               <span class="target" id="rep-target"></span>
-              <button class="mini" id="rep-plus" type="button" aria-label="Mais uma repetição">+</button>
+              <button class="mini" id="rep-plus" type="button" aria-label="Pular para a próxima repetição">+</button>
             </div>
           </div>
+          <p class="dock-now" id="dock-now"></p>
           <div class="dock-count" id="st-counter">
-            <button class="big-btn" id="st-minus" type="button" aria-label="Um ponto a menos">&minus;</button>
+            <button class="big-btn" id="st-minus" type="button" aria-label="Desfazer um ponto">&minus;</button>
             <output class="count" id="st-count" for="st-plus st-minus">0</output>
-            <button class="big-btn plus" id="st-plus" type="button" aria-label="Mais um ponto">+</button>
+            <button class="big-btn plus" id="st-plus" type="button" aria-label="Marcar um ponto">+</button>
           </div>
           <div class="row-actions">
             <button class="btn ghost" id="btn-prev" type="button" aria-label="Carreira anterior">&#8249;</button>
@@ -366,10 +375,10 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
     <div class="field"><label for="voice-wake">Palavra de ativação</label><input type="text" id="voice-wake" placeholder="Novelo" autocomplete="off"></div>
     <label class="check-row"><input type="checkbox" id="voice-feedback" checked> Responder em voz (confirma o número e lê a próxima carreira)</label>
     <ul class="cmds">
-      <li><b>mais um</b>, <b>mais três pontos</b>, <b>menos um</b>: soma ou tira pontos.</li>
-      <li><b>ponto doze</b> ou <b>estou no ponto doze</b>: define o total de pontos.</li>
-      <li><b>fiz um aumento</b>, <b>mais uma repetição</b>: soma uma repetição.</li>
-      <li><b>terceiro aumento</b>, <b>quinta repetição</b>: define a repetição atual.</li>
+      <li><b>mais um</b>, <b>mais três pontos</b>, <b>menos um</b>: marca ou desfaz pontos na instrução atual.</li>
+      <li><b>ponto doze</b> ou <b>estou no ponto doze</b>: pula para o ponto doze da carreira.</li>
+      <li><b>fiz um aumento</b>, <b>mais uma repetição</b>: fecha a repetição atual e começa a próxima.</li>
+      <li><b>terceiro aumento</b>, <b>quinta repetição</b>: marca essa quantidade de repetições como feita.</li>
       <li><b>carreira concluída</b>, <b>terminei</b>, <b>próxima</b>: conclui e passa para a próxima.</li>
       <li><b>voltar</b> ou <b>anterior</b>: volta uma carreira.</li>
       <li><b>ler</b> ou <b>o que eu faço</b>: lê a carreira atual em voz alta.</li>
@@ -448,12 +457,70 @@ function labelFor(r,short){
   if(r.kind==='rnd')return 'Volta '+r.num;
   return (short?'Carr. ':'Carreira ')+r.num;
 }
-function makeRow(section,kind,num,body){
-  return {section,kind,num,text:body,target:parseTarget(body),repeat:parseRepeat(body),steps:splitSteps(stripCount(body))};
+/* Plano de toques: cada instrução vira um alvo com um número de pontos; trechos entre asteriscos ou parênteses viram blocos repetidos. */
+const NEXT_N=/\b(?:nos?|nas?|in|em|dos?|das?|into)\s+(?:pr[oó]ximos?|next|seguintes?|following)\s+(\d+)\b/i;
+const COUNT_LEAD=/^(\d+)\s*(?:x\s*)?(?=[a-zÀ-ÿ(])/i;
+const COUNT_TAIL=/^(?:ch|sc|dc|hdc|tr|dtr|corr|pb|pa|mpa|pbx)\s+(\d+)$/i;
+const EACH=/\b(?:em cada|cada|each|every|ao redor|around|at[eé] o fim|to (?:the )?end|em todos|em todas|todos os|todas as)\b/i;
+const clampN=n=>Math.max(1,Math.min(500,n|0));
+function stepCount(label,prevTarget,target){
+  let m=NEXT_N.exec(label);if(m)return clampN(+m[1]);
+  if(EACH.test(label)&&(prevTarget||target))return clampN(prevTarget||target);
+  m=COUNT_LEAD.exec(label);if(m)return clampN(+m[1]);
+  m=COUNT_TAIL.exec(label.trim());if(m)return clampN(+m[1]);
+  return 1;
+}
+function repTail(tail){return /\b(rep|repetir|repita|repete|repeat|vezes|vez|times|x\s?\d|\d\s?x|at[eé] o fim|ao redor|around|to end|more)\b/i.test(tail);}
+function expandSteps(text,prevTarget,target){
+  const out=[];
+  for(const chunk of splitSteps(text)){
+    const m=/^\*(.+)\*\s*(.*)$/s.exec(chunk)||/^\((.+)\)\s*(.*)$/s.exec(chunk);
+    if(m&&(/^\*/.test(chunk)||repTail(m[2]))){
+      const inner=expandSteps(m[1],prevTarget,target);
+      let times=parseRepeat(m[2]);
+      if(!times&&/\b(at[eé] o fim|ao redor|around|to end|fim)\b/i.test(m[2])&&prevTarget){const per=inner.reduce((a,s)=>a+s.count,0)||1;times=Math.max(1,Math.round(prevTarget/per));}
+      out.push({kind:'rep',times:times||1,steps:inner,tail:m[2].trim()});
+    }else out.push({kind:'step',label:chunk,count:stepCount(chunk,prevTarget,target)});
+  }
+  return out;
+}
+function flatten(segs){const out=[];for(const s of segs){if(s.kind==='step')out.push(s);else for(let k=0;k<s.times;k++)out.push(...flatten(s.steps));}return out;}
+function buildPlan(text,prevTarget,target){
+  const raw=expandSteps(stripCount(text),prevTarget,target);
+  const segs=raw.map(s=>s.kind==='rep'?{kind:'rep',times:s.times,steps:flatten(s.steps).map(x=>({label:x.label,count:x.count}))}:s);
+  const total=segs.reduce((a,s)=>a+(s.kind==='step'?s.count:s.times*s.steps.reduce((b,x)=>b+x.count,0)),0);
+  if(!segs.length){segs.push({kind:'step',label:text.trim()||'Feito',count:1});return {segments:segs,total:1};}
+  return {segments:segs,total:Math.max(1,total)};
+}
+function locate(plan,taps){
+  let t=Math.max(0,taps|0),offset=0;
+  for(let s=0;s<plan.segments.length;s++){
+    const seg=plan.segments[s];
+    if(seg.kind==='step'){
+      if(t<seg.count)return {seg:s,rep:null,step:0,done:t,count:seg.count,label:seg.label,start:offset};
+      t-=seg.count;offset+=seg.count;continue;
+    }
+    const len=seg.steps.reduce((a,x)=>a+x.count,0)||1,segTotal=len*seg.times;
+    if(t<segTotal){
+      const rep=Math.floor(t/len);let u=t-rep*len;
+      for(let k=0;k<seg.steps.length;k++){
+        if(u<seg.steps[k].count)return {seg:s,rep:rep+1,repTimes:seg.times,repLen:len,repStart:offset,step:k,done:u,count:seg.steps[k].count,label:seg.steps[k].label,start:offset+rep*len+(seg.steps.slice(0,k).reduce((a,x)=>a+x.count,0))};
+        u-=seg.steps[k].count;
+      }
+    }
+    t-=segTotal;offset+=segTotal;
+  }
+  return null;
+}
+function firstRep(plan){let offset=0;for(const seg of plan.segments){if(seg.kind==='rep'){const len=seg.steps.reduce((a,x)=>a+x.count,0)||1;return {start:offset,len,times:seg.times};}offset+=seg.count;}return null;}
+function makeRow(section,kind,num,body,prevTarget){
+  const target=parseTarget(body);
+  return {section,kind,num,text:body,target,repeat:parseRepeat(body),prevTarget:prevTarget||null,plan:buildPlan(body,prevTarget,target)};
 }
 function parsePattern(text){
   const lines=text.replace(/ /g,' ').split(/\r?\n/).map(l=>l.trim());
   const rows=[],intro=[];let section='',title='',lastBatch=null;
+  const prevT=()=>{for(let i=rows.length-1;i>=0;i--){if(rows[i].kind!=='note'&&rows[i].target)return rows[i].target;}return null;};
   for(const line of lines){
     if(!line){lastBatch=null;continue;}
     let m=ROW_RE.exec(line),kind=null,a,b,body;
@@ -463,9 +530,14 @@ function parsePattern(text){
       if(b<a)[a,b]=[b,a];
       if(b-a>300)b=a+300;
       const batch=[];
-      for(let n=a;n<=b;n++)batch.push(makeRow(section,kind,n,body));
       const ref=body.match(/^(?:rep(?:eat|etir|ita)?\.?|same as|work as(?: for)?|igual (?:à|a)|como (?:a|na))\s+(?:row|rnd|round|carr(?:eira)?\.?|volta|vlt|rodada)s?\s+(\d+)/i);
-      if(ref&&batch[0].target==null){const r=rows.find(x=>x.num===+ref[1]&&x.kind!=='note');if(r)batch.forEach(x=>{x.target=r.target;});}
+      const refRow=ref?rows.find(x=>x.num===+ref[1]&&x.kind!=='note'):null;
+      for(let n=a;n<=b;n++){
+        const pt=batch.length?(batch[batch.length-1].target||prevT()):prevT();
+        const r=refRow?makeRow(section,kind,n,refRow.text,pt):makeRow(section,kind,n,body,pt);
+        if(refRow){r.text=body;if(parseTarget(body)==null)r.target=refRow.target;}
+        batch.push(r);
+      }
       rows.push(...batch);lastBatch=batch;continue;
     }
     if(isHeading(line)){
@@ -474,11 +546,11 @@ function parsePattern(text){
       lastBatch=null;continue;
     }
     if(lastBatch&&(/^[\p{Ll}0-9(*\[]/u.test(line)||lastBatch[0].text==='')){
-      lastBatch.forEach(r=>{const t=(r.text+' '+line).trim();Object.assign(r,makeRow(r.section,r.kind,r.num,t));});
+      lastBatch.forEach(r=>{const t=(r.text+' '+line).trim();Object.assign(r,makeRow(r.section,r.kind,r.num,t,r.prevTarget));});
       continue;
     }
     if(rows.length===0){intro.push(line);continue;}
-    rows.push(makeRow(section,'note',null,line));lastBatch=null;
+    rows.push(makeRow(section,'note',null,line,null));lastBatch=null;
   }
   return {rows,intro:intro.join(' '),title};
 }
@@ -517,12 +589,16 @@ Arremate e esconda as pontas. Bloqueie em um quadrado de 15 cm.`;
 /* ---------- Estado ---------- */
 let state={patterns:[],activeId:null};
 function migrate(s){
-  // v1 salvava rótulos em inglês ("Rnd 1"); agora o tipo é 'row' | 'rnd' | 'note' e o rótulo é calculado.
+  // v1 salvava rótulos em inglês ("Rnd 1") e contava pontos à parte; agora cada carreira tem um plano de toques.
   for(const p of s.patterns){
+    let prev=null;
     for(const r of p.rows||[]){
       if(r.kind==='Rnd')r.kind='rnd';else if(r.kind==='Row')r.kind='row';else if(r.kind==='Note')r.kind='note';
-      delete r.label;
+      delete r.label;delete r.steps;
+      if(r.kind==='note'){r.prevTarget=null;r.plan=buildPlan(r.text,null,null);}
+      else{r.prevTarget=prev;r.plan=buildPlan(r.text,prev,r.target);if(r.target)prev=r.target;}
     }
+    if(!p.taps){p.taps={};for(const k in (p.st||{})){const r=p.rows[k];if(r)p.taps[k]=Math.min(p.st[k]|0,r.plan.total);}}
   }
   if(!s.lang){
     // troca os exemplos em inglês pelos em português, mantendo as receitas da pessoa
@@ -547,7 +623,7 @@ function load(){
 function save(){try{localStorage.setItem(STORE,JSON.stringify(state));}catch(e){}}
 function createPattern(name,text,example){
   const parsed=parsePattern(text);
-  return {id:uid(),name:(name||parsed.title||'Receita sem nome').trim(),text,intro:parsed.intro,rows:parsed.rows,example:!!example,created:Date.now(),cur:0,done:{},st:{},rep:{},stepsDone:{},notes:{}};
+  return {id:uid(),name:(name||parsed.title||'Receita sem nome').trim(),text,intro:parsed.intro,rows:parsed.rows,example:!!example,created:Date.now(),cur:0,done:{},taps:{},notes:{}};
 }
 const active=()=>state.patterns.find(p=>p.id===state.activeId)||null;
 const doneCount=p=>p.rows.reduce((n,_,i)=>n+(p.done[i]?1:0),0);
@@ -586,26 +662,26 @@ function renderNow(){
   $('#now-label').textContent=labelFor(row,false);
   $('#now-done').hidden=!p.done[i];
   $('#now-text').textContent=row.text;
-  const steps=$('#steps');steps.textContent='';
-  const sd=p.stepsDone[i]||{};
-  row.steps.forEach((s,k)=>{
-    const b=el('button','step'+(sd[k]?' on':''),s);b.type='button';b.setAttribute('aria-pressed',sd[k]?'true':'false');
-    b.addEventListener('click',()=>{const m=p.stepsDone[i]||(p.stepsDone[i]={});m[k]=!m[k];save();renderNow();});
-    steps.appendChild(b);
-  });
-  $('#steps-hint').hidden=row.steps.length<2;
-  const st=p.st[i]||0;
-  $('#st-count').value=st;
-  $('#st-target').textContent=row.target?'de '+row.target:'sem contagem na receita';
-  $('#st-counter').classList.toggle('reached',!!row.target&&st>=row.target);
-  const rp=p.rep[i]||0;
-  $('#rep-count').value=rp;
-  $('#rep-target').textContent=row.repeat?'de '+row.repeat:'';
-  $('#rep-counter').classList.toggle('reached',!!row.repeat&&rp>=row.repeat);
+  const plan=row.plan,taps=Math.min(p.taps[i]||0,plan.total),loc=locate(plan,taps);
+  renderSteps(p,i,plan,taps,loc);
+  $('#steps-hint').hidden=plan.total<2;
+  $('#st-count').value=taps;
+  $('#st-target').textContent='de '+plan.total+(row.target&&row.target!==plan.total?' · receita: '+row.target+' pts':'');
+  $('#st-counter').classList.toggle('reached',taps>=plan.total);
+  const fr=firstRep(plan);
+  $('#rep-counter').hidden=!fr;
+  if(fr){
+    const repNow=loc&&loc.rep?loc.rep:(taps>=fr.start+fr.len*fr.times?fr.times:0);
+    $('#rep-count').value=repNow;
+    $('#rep-target').textContent='de '+fr.times;
+    $('#rep-counter').classList.toggle('reached',!loc||loc.rep===null&&taps>=fr.start+fr.len*fr.times);
+  }
+  const nowTxt=loc?(loc.label+(loc.count>1?' · '+loc.done+'/'+loc.count:'')+(loc.rep?' · repetição '+loc.rep+' de '+loc.repTimes:'')):'Tudo marcado nesta carreira';
+  $('#dock-now').textContent=nowTxt;
   $('#btn-prev').disabled=i===0;
   const noun=row.kind==='rnd'?'Volta':row.kind==='note'?'Etapa':'Carreira';
   $('#btn-done').textContent=i===t-1?(p.done[i]?'Receita concluída':'Concluir receita'):(p.done[i]?'Próxima ›':noun+' concluída ›');
-  $('#btn-done').classList.toggle('ready',!!row.target&&st>=row.target&&!p.done[i]);
+  $('#btn-done').classList.toggle('ready',taps>=plan.total&&!p.done[i]);
   const next=p.rows[i+1];
   $('#next-up').textContent=next?'Depois: '+labelFor(next,true)+' · '+next.text:(d===t?'Todas as etapas concluídas. Bom trabalho.':'Esta é a última etapa.');
   $('#row-note').value=p.notes[i]||'';
@@ -617,7 +693,43 @@ function renderNow(){
   });
   renderLibrary();
 }
-function cntText(p,k){const r=p.rows[k];const s=p.st[k]||0;if(r.target)return s+' / '+r.target+' pts';if(s)return s+' pts';return '';}
+function cntText(p,k){const r=p.rows[k];const s=Math.min(p.taps[k]||0,r.plan.total);if(r.plan.total>1||s)return s+' / '+r.plan.total;return '';}
+function renderSteps(p,i,plan,taps,loc){
+  const box=$('#steps');box.textContent='';
+  let offset=0;
+  const chip=(label,count,start,inRep)=>{
+    const b=el('button','step');b.type='button';
+    const end=start+count;
+    const state=taps>=end?'on':(taps>=start?'active':'');
+    if(state)b.classList.add(state);
+    b.appendChild(el('span',null,label));
+    if(count>1||state==='active'){const n=el('span','n',state==='active'?(taps-start)+'/'+count:String(count));b.appendChild(n);}
+    b.setAttribute('aria-label',label+(count>1?', '+count+' pontos':'')+(state==='active'?', instrução atual':state==='on'?', feita':''));
+    b.addEventListener('click',()=>{
+      if(state==='active')setTaps(p,i,taps+1);
+      else setTaps(p,i,start);
+    });
+    return b;
+  };
+  for(const seg of plan.segments){
+    if(seg.kind==='step'){box.appendChild(chip(seg.label,seg.count,offset));offset+=seg.count;continue;}
+    const len=seg.steps.reduce((a,x)=>a+x.count,0)||1,segTotal=len*seg.times;
+    const repIdx=Math.min(seg.times-1,Math.max(0,Math.floor((taps-offset)/len)));
+    const finished=taps>=offset+segTotal;
+    const g=el('div','rep-group'+(finished?' done':''));
+    const head=el('div','rep-head');
+    head.appendChild(el('span',null,finished?'Repetido '+seg.times+' de '+seg.times:'Repetição '+(taps<offset?1:repIdx+1)+' de '+seg.times));
+    head.appendChild(el('span',null,len+(len===1?' ponto':' pontos')+' por repetição'));
+    g.appendChild(head);
+    const inner=el('div','rep-steps');
+    const base=offset+(finished?(seg.times-1):Math.max(0,repIdx))*len;
+    let o=base;
+    for(const s of seg.steps){inner.appendChild(chip(s.label,s.count,o,true));o+=s.count;}
+    g.appendChild(inner);
+    box.appendChild(g);
+    offset+=segTotal;
+  }
+}
 
 function renderList(){
   const p=active();const box=$('#rows');box.textContent='';if(!p)return;
@@ -632,7 +744,7 @@ function renderList(){
     const d=el('div','row'+(k===p.cur?' current':'')+(p.done[k]?' done':''));d.dataset.i=k;
     const lbl=labelFor(r,true);
     const chk=el('button','check','✓');chk.type='button';chk.setAttribute('aria-label',(p.done[k]?'Desmarcar '+lbl:'Marcar '+lbl+' como concluída'));
-    chk.addEventListener('click',()=>{p.done[k]=!p.done[k];if(p.done[k]&&r.target&&!(p.st[k]>=r.target))p.st[k]=r.target;save();renderNow();});
+    chk.addEventListener('click',()=>{p.done[k]=!p.done[k];p.taps[k]=p.done[k]?r.plan.total:0;save();renderNow();});
     const main=el('button','row-main');main.type='button';
     const lblEl=el('div','lbl');lblEl.appendChild(el('span',null,lbl));lblEl.appendChild(el('span','cnt',cntText(p,k)));
     const note=el('div','row-note',p.notes[k]||'');note.hidden=!p.notes[k];
@@ -659,30 +771,45 @@ let wake=null;
 async function keepAwake(){
   try{if(!wake&&navigator.wakeLock&&document.visibilityState==='visible'){wake=await navigator.wakeLock.request('screen');wake.addEventListener('release',()=>{wake=null;});}}catch(e){}
 }
-function bump(key,delta){
-  const p=active();if(!p)return;const i=p.cur;
-  p[key][i]=Math.max(0,(p[key][i]||0)+delta);
+function setTaps(p,i,v,quiet){
+  const total=p.rows[i].plan.total;v=Math.max(0,Math.min(total,v|0));
+  p.taps[i]=v;
+  if(v>=total&&!p.done[i]&&i===p.cur){completeRow(p,i,quiet);return;}
   save();renderNow();keepAwake();
 }
-function rowDone(){
-  const p=active();if(!p)return;const i=p.cur,r=p.rows[i];
-  if(!p.done[i]){p.done[i]=true;if(r.target&&!(p.st[i]>=r.target))p.st[i]=r.target;}
-  if(i<p.rows.length-1)p.cur=i+1;
-  save();renderNow();
+function completeRow(p,i,quiet){
+  const r=p.rows[i];p.done[i]=true;p.taps[i]=r.plan.total;
+  const last=i>=p.rows.length-1;
+  if(!last)p.cur=i+1;
+  save();renderNow();keepAwake();
   if(doneCount(p)===p.rows.length)toast('Receita concluída. Hora de bloquear.');
   else toast(labelFor(r,false)+' concluída');
-  keepAwake();
+  if(!quiet&&!last&&voice.on){const n=p.rows[p.cur];speak(labelFor(r,false)+' concluída. Agora '+labelFor(n,false)+'. '+ttsText(n.text));}
+}
+function tap(delta){const p=active();if(!p)return;setTaps(p,p.cur,(p.taps[p.cur]||0)+delta);}
+function rowDone(quiet){
+  const p=active();if(!p)return;const i=p.cur;
+  if(p.done[i]){if(i<p.rows.length-1){p.cur=i+1;save();renderNow();}return;}
+  completeRow(p,i,quiet);
+}
+function repJump(delta){
+  const p=active();if(!p)return;const i=p.cur,plan=p.rows[i].plan,fr=firstRep(plan);if(!fr)return;
+  const taps=Math.min(p.taps[i]||0,plan.total);
+  const cur=Math.floor((Math.max(taps,fr.start)-fr.start)/fr.len);
+  const atStart=taps<=fr.start+cur*fr.len;
+  const next=delta>0?Math.min(fr.times,cur+1):Math.max(0,atStart?cur-1:cur);
+  setTaps(p,i,fr.start+next*fr.len);
 }
 function prevRow(){const p=active();if(!p||p.cur===0)return;p.cur--;save();renderNow();}
 
 let toastTimer=null;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},1800);}
 
-$('#st-plus').addEventListener('click',()=>bump('st',1));
-$('#st-minus').addEventListener('click',()=>bump('st',-1));
-$('#rep-plus').addEventListener('click',()=>bump('rep',1));
-$('#rep-minus').addEventListener('click',()=>bump('rep',-1));
-$('#btn-done').addEventListener('click',rowDone);
+$('#st-plus').addEventListener('click',()=>tap(1));
+$('#st-minus').addEventListener('click',()=>tap(-1));
+$('#rep-plus').addEventListener('click',()=>repJump(1));
+$('#rep-minus').addEventListener('click',()=>repJump(-1));
+$('#btn-done').addEventListener('click',()=>rowDone(false));
 $('#btn-prev').addEventListener('click',prevRow);
 $('#btn-back-lib').addEventListener('click',()=>setView('library'));
 $('#row-note').addEventListener('input',e=>{const p=active();if(!p)return;p.notes[p.cur]=e.target.value;save();
@@ -692,9 +819,9 @@ document.addEventListener('keydown',e=>{
   const tag=(e.target.tagName||'').toLowerCase();
   if(tag==='input'||tag==='textarea'||e.metaKey||e.ctrlKey||e.altKey)return;
   if(!active()||$('#pattern').hidden||openDialog)return;
-  if(e.key==='+'||e.key==='='||e.key==='ArrowRight'){e.preventDefault();bump('st',1);}
-  else if(e.key==='-'||e.key==='ArrowLeft'){e.preventDefault();bump('st',-1);}
-  else if(e.key==='Enter'){e.preventDefault();rowDone();}
+  if(e.key==='+'||e.key==='='||e.key==='ArrowRight'||e.key===' '){e.preventDefault();tap(1);}
+  else if(e.key==='-'||e.key==='ArrowLeft'){e.preventDefault();tap(-1);}
+  else if(e.key==='Enter'){e.preventDefault();rowDone(false);}
   else if(e.key==='Backspace'){e.preventDefault();prevRow();}
 });
 
@@ -715,7 +842,7 @@ menu.addEventListener('click',e=>{
   const act=b.dataset.act;
   if(act==='rename'){closeMenu();$('#ren-name').value=p.name;show('#dlg-rename');$('#ren-name').focus();}
   else if(act==='edit'){closeMenu();openImport(p);}
-  else if(act==='reset'){confirmTwice(b,'Zerar mesmo? Toque de novo',()=>{p.cur=0;p.done={};p.st={};p.rep={};p.stepsDone={};save();renderAll();closeMenu();toast('Progresso zerado');});}
+  else if(act==='reset'){confirmTwice(b,'Zerar mesmo? Toque de novo',()=>{p.cur=0;p.done={};p.taps={};save();renderAll();closeMenu();toast('Progresso zerado');});}
   else if(act==='delete'){confirmTwice(b,'Excluir mesmo? Toque de novo',()=>{state.patterns=state.patterns.filter(x=>x.id!==p.id);state.activeId=state.patterns[0]?state.patterns[0].id:null;save();renderAll();closeMenu();toast('Receita excluída');if(!state.activeId)setView('library');});}
 });
 
@@ -829,7 +956,7 @@ $('#imp-go').addEventListener('click',()=>{
   if(!text.trim()){$('#imp-preview').textContent='Cole o texto da receita primeiro.';return;}
   if(editing){
     const fresh=createPattern($('#imp-name').value||editing.name,text,false);
-    Object.assign(editing,{name:fresh.name,text,intro:fresh.intro,rows:fresh.rows,example:false,cur:0,done:{},st:{},rep:{},stepsDone:{},notes:{}});
+    Object.assign(editing,{name:fresh.name,text,intro:fresh.intro,rows:fresh.rows,example:false,cur:0,done:{},taps:{},notes:{}});
     toast('Receita reimportada');
   }else{
     const p=createPattern($('#imp-name').value,text,false);
@@ -919,7 +1046,7 @@ function afterWake(text){
   return null;
 }
 const TTS_MAP={pb:'ponto baixo',pa:'ponto alto',mpa:'meio ponto alto',pad:'ponto alto duplo',pat:'ponto alto triplo',pbx:'ponto baixíssimo',corr:'correntinha',aum:'aumento',dim:'diminuição',pts:'pontos',pt:'ponto',rep:'repetir',sc:'ponto baixo',dc:'ponto alto',hdc:'meio ponto alto',ch:'correntinha',sts:'pontos',st:'ponto',inc:'aumento',dec:'diminuição'};
-function ttsText(s){return String(s||'').replace(/\*/g,' ').replace(/\b([a-z]{2,4})\b/gi,(m,w)=>TTS_MAP[w.toLowerCase()]||m).replace(/\s+/g,' ').trim();}
+function ttsText(s){return String(s||'').replace(/\*/g,' ').replace(/\b([a-z]{2,4})\b/gi,(m,w)=>TTS_MAP[w.toLowerCase()]||m).replace(/\b(\d+) (meio )?ponto (baixo|alto|baixíssimo)\b/g,(m,n,meio,t)=>+n>1?n+' '+(meio?'meios ':'')+'pontos '+t+'s':m).replace(/\s+/g,' ').trim();}
 function speak(text){
   if(!voice.feedback||!('speechSynthesis'in window)||!text)return;
   try{
@@ -934,28 +1061,40 @@ function speak(text){
   }catch(e){voice.muted=false;}
 }
 function readRow(p,r){
-  const st=p.st[p.cur]||0,rp=p.rep[p.cur]||0;
+  const taps=Math.min(p.taps[p.cur]||0,r.plan.total),loc=locate(r.plan,taps);
   let s=labelFor(r,false)+'. '+ttsText(r.text)+'.';
-  if(r.target)s+=' Você está no ponto '+st+' de '+r.target+'.';
-  if(r.repeat)s+=' Repetição '+rp+' de '+r.repeat+'.';
+  s+=' Ponto '+taps+' de '+r.plan.total+'.';
+  if(loc){s+=' Agora: '+ttsText(loc.label)+(loc.count>1?', '+loc.done+' de '+loc.count:'')+'.';if(loc.rep)s+=' Repetição '+loc.rep+' de '+loc.repTimes+'.';}
   return s;
 }
 function runCommand(a){
   const p=active();if(!p)return 'Nenhuma receita aberta';
-  const i=p.cur,r=p.rows[i];
+  const i=p.cur,r=p.rows[i],plan=r.plan;
   if(a.type==='stop'){stopVoice();return 'Parei de ouvir';}
   if(a.type==='read')return readRow(p,r);
   if(a.type==='prev'){prevRow();return labelFor(p.rows[p.cur],false);}
-  if(a.type==='done'){
-    const lbl=labelFor(r,false);rowDone();
-    const n=p.rows[p.cur];
-    return lbl+' concluída.'+(p.cur!==i?' Agora '+labelFor(n,false)+'. '+ttsText(n.text):' Receita concluída.');
+  const after=()=>{
+    if(p.cur!==i){const n=p.rows[p.cur];return labelFor(r,false)+' concluída. Agora '+labelFor(n,false)+'. '+ttsText(n.text);}
+    if(p.done[i]&&(p.taps[i]||0)>=plan.total)return labelFor(r,false)+' concluída. Receita concluída.';
+    return null;
+  };
+  if(a.type==='done'){rowDone(true);return after()||(labelFor(r,false)+' concluída.');}
+  const taps=Math.min(p.taps[i]||0,plan.total);
+  if(a.type==='rep'){
+    const fr=firstRep(plan);
+    if(!fr)return 'Esta carreira não tem repetições';
+    let v;
+    if(a.set!=null)v=fr.start+Math.min(fr.times,a.set)*fr.len;
+    else{const cur=Math.floor((Math.max(taps,fr.start)-fr.start)/fr.len);v=fr.start+Math.max(0,Math.min(fr.times,cur+a.delta))*fr.len;}
+    setTaps(p,i,v,true);
+    const d=after();if(d)return d;
+    const comp=Math.min(fr.times,Math.floor(((p.taps[i]||0)-fr.start)/fr.len));
+    return comp+' de '+fr.times+' repetições feitas';
   }
-  const key=a.type;
-  let v=a.set!=null?a.set:(p[key][i]||0)+a.delta;v=Math.max(0,v);
-  p[key][i]=v;save();renderNow();keepAwake();
-  const tgt=key==='st'?r.target:r.repeat;
-  return (key==='rep'?'Repetição ':'')+v+(tgt?' de '+tgt:'');
+  setTaps(p,i,a.set!=null?a.set:taps+a.delta,true);
+  const d=after();if(d)return d;
+  const loc=locate(plan,p.taps[i]||0);
+  return 'Ponto '+(p.taps[i]||0)+' de '+plan.total+(loc?'. '+ttsText(loc.label)+(loc.count>1?', '+loc.done+' de '+loc.count:''):'');
 }
 function setVoiceStatus(msg,cls){
   const s=$('#voice-status');s.textContent='';s.className='voice-status'+(cls?' '+cls:'');
@@ -1020,7 +1159,7 @@ $('#voice-toggle').addEventListener('click',()=>{if(voice.on){stopVoice();}else{
 $('#voice-wake').addEventListener('input',e=>{voice.wake=e.target.value.trim();saveVoice();if(voice.on)listeningStatus();});
 $('#voice-feedback').addEventListener('change',e=>{voice.feedback=e.target.checked;saveVoice();});
 if('speechSynthesis'in window){try{speechSynthesis.getVoices();}catch(e){}}
-window.hookrow.interpret=interpret;window.hookrow.afterWake=afterWake;window.hookrow.ttsText=ttsText;
+window.hookrow.interpret=interpret;window.hookrow.afterWake=afterWake;window.hookrow.ttsText=ttsText;window.hookrow.run=a=>runCommand(a);
 
 /* ---------- Início ---------- */
 load();
