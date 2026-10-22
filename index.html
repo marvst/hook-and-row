@@ -87,6 +87,9 @@ kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(
 .row-label{font-family:var(--display);font-size:1.9rem;font-weight:700;line-height:1}
 .done-pill{font-size:.75rem;font-weight:700;color:var(--done);background:var(--done-soft);padding:3px 9px;border-radius:99px}
 .now-text{font-size:1.1rem;line-height:1.5;max-width:70ch}
+.piece{font-size:.92rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.piece b{color:var(--fg);font-size:1.15rem}
+.piece .warn{color:var(--danger)}
 .steps{display:flex;flex-wrap:wrap;gap:10px}
 .step{flex:1 1 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:12px 20px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);text-align:left;font-size:1.05rem;line-height:1.25;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .08s}
 .step:active{transform:scale(.985)}
@@ -215,7 +218,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
     <footer class="lib-foot">
       <button class="link" id="btn-backup" type="button">Backup e restauração</button>
       <button class="link" id="btn-help" type="button">Formato da receita</button>
-      <span class="ver" title="Se o app parecer antigo, recarregue a página">v11 · 22 out 2026</span>
+      <span class="ver" title="Se o app parecer antigo, recarregue a página">v12 · 22 out 2026</span>
     </footer>
   </aside>
 
@@ -252,6 +255,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
           <span class="row-label" id="now-label"></span>
           <span class="done-pill" id="now-done" hidden>Concluída</span>
         </div>
+        <p class="piece" id="piece"></p>
         <p class="now-text" id="now-text"></p>
         <div>
           <div class="steps" id="steps"></div>
@@ -458,16 +462,39 @@ const COUNT_PREFIXED=/^[a-zÀ-ÿ]{2,4}(\d+)\s*[a-z]/i;
 const COUNT_ANY=/^(?:fa[çc]a|fazer|trabalhe|trabalhar|tece|make|work|chain)\s+(?:uma\s+corrente\s+de\s+)?(\d+)\s*(?:corr|correntinhas?|ch|pb|pa|mpa|pbx|sc|dc|hdc|tr|aum|diminv|dim|inc|dec|pts?|pontos?|sts?)\b/i;
 const EACH=/\b(?:em cada|cada|each|every|ao redor|around|at[eé] o fim|to (?:the )?end|em todos|em todas|todos os|todas as)\b/i;
 const clampN=n=>Math.max(1,Math.min(500,n|0));
-function stepCount(label,prevTarget,target){
+/* Quantos pontos a instrução deixa na peça por toque: aum = 2, dim = 1, pb/pa = 1, correntinha = 0, pbx de fechamento = 0. */
+const spaced=s=>String(s||'').replace(/(\d)([a-zÀ-ÿ])/gi,'$1 $2').replace(/([a-zÀ-ÿ])(\d)/gi,'$1 $2').replace(/\b(sat|saf|blo|flo)(pb|pa|mpa|aum|dim|sc|dc|hdc)\b/gi,'$1 $2');
+const deaccent=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'');
+const TERM_RE=/\b(aum|aumentos?|inc|increase|dim|diminv|diminuicao|dec|decrease|tog|juntos|together|pbx|sl\s?st|slst|corr|ch|chains?|correntinhas?|corrente|pb|pa|mpa|pad|pat|sc|dc|hdc|tr|dtr|fpdc|bpdc|fptr|bptr|pontos?|sts?|stitch(?:es)?|picot)\b/i;
+function stepYield(label){
+  const core=deaccent(spaced(label.replace(/\([^)]*\)/g,' ')));
+  if(/\b(conta como|counts? as)\b/i.test(deaccent(label)))return 1;
+  const m=TERM_RE.exec(core);if(!m)return 0;
+  const w=m[1].toLowerCase().replace(/\s+/g,'');
+  if(/^(aum|aumentos?|inc|increase)$/.test(w))return 2;
+  if(/^(dim|diminv|diminuicao|dec|decrease|tog|juntos|together)$/.test(w))return 1;
+  if(/^(pbx|slst)$/.test(w))return /\b(feche|fechar|fechando|join|junte|una|unindo|arremate|ate|to|into|across)\b/i.test(core)?0:1;
+  if(/^(corr|ch|chains?|correntinhas?|corrente)$/.test(w))return 0;
+  return 1;
+}
+function stepInfo(label,prevTarget,target){
   const core=label.replace(/^\([^)]*\)\s*/,'').trim();
   const noParen=core.replace(/\([^)]*\)/g,' ');
-  let m=NEXT_N.exec(noParen);if(m)return clampN(+m[1]);
-  if(EACH.test(noParen)&&(prevTarget||target))return clampN(prevTarget||target);
-  m=COUNT_LEAD.exec(core);if(m)return clampN(+m[1]);
-  m=COUNT_TAIL.exec(noParen.trim());if(m)return clampN(+m[1]);
-  m=COUNT_PREFIXED.exec(core);if(m)return clampN(+m[1]);
-  m=COUNT_ANY.exec(noParen);if(m)return clampN(+m[1]);
-  return 1;
+  const lead=COUNT_LEAD.exec(core);
+  const y=stepYield(label);
+  let m;
+  if(/\b(conta como|counts? as)\b/i.test(deaccent(label)))return {count:1,y:1};
+  if(/\b(tog|juntos|together)\b/i.test(noParen)){
+    m=NEXT_N.exec(noParen);
+    return {count:m?clampN(+m[1]):1,y:1};
+  }
+  m=NEXT_N.exec(noParen);if(m)return {count:clampN(+m[1]),y:y*(lead?+lead[1]:1)};
+  if(EACH.test(noParen)&&(prevTarget||target))return {count:clampN(prevTarget||target),y:y*(lead?+lead[1]:1)};
+  if(lead)return {count:clampN(+lead[1]),y};
+  m=COUNT_TAIL.exec(noParen.trim());if(m)return {count:clampN(+m[1]),y};
+  m=COUNT_PREFIXED.exec(core);if(m)return {count:clampN(+m[1]),y};
+  m=COUNT_ANY.exec(noParen);if(m)return {count:clampN(+m[1]),y};
+  return {count:1,y};
 }
 function repTail(tail){return /\b(rep|repetir|repita|repete|repeat|vezes|vez|times|x\s?\d|\d\s?x|at[eé] o fim|ao redor|around|to end|more)\b/i.test(tail);}
 function expandSteps(text,prevTarget,target){
@@ -479,17 +506,46 @@ function expandSteps(text,prevTarget,target){
       let times=parseRepeat(m[2]);
       if(!times&&/\b(at[eé] o fim|ao redor|around|to end|fim)\b/i.test(m[2])&&prevTarget){const per=inner.reduce((a,s)=>a+s.count,0)||1;times=Math.max(1,Math.round(prevTarget/per));}
       out.push({kind:'rep',times:times||1,steps:inner,tail:m[2].trim()});
-    }else out.push({kind:'step',label:chunk,count:stepCount(chunk,prevTarget,target)});
+    }else{const info=stepInfo(chunk,prevTarget,target);out.push({kind:'step',label:chunk,count:info.count,y:info.y});}
   }
   return out;
 }
 function flatten(segs){const out=[];for(const s of segs){if(s.kind==='step')out.push(s);else for(let k=0;k<s.times;k++)out.push(...flatten(s.steps));}return out;}
+function producedUpTo(plan,t){
+  let sum=0;t=Math.max(0,t|0);
+  for(const seg of plan.segments){
+    if(t<=0)break;
+    if(seg.kind==='step'){const d=Math.min(seg.count,t);sum+=d*(seg.y||0);t-=seg.count;continue;}
+    const len=seg.steps.reduce((a,x)=>a+x.count,0)||1,per=seg.steps.reduce((a,x)=>a+x.count*(x.y||0),0),segTotal=len*seg.times;
+    if(t>=segTotal){sum+=per*seg.times;t-=segTotal;continue;}
+    const reps=Math.floor(t/len);sum+=reps*per;let u=t-reps*len;
+    for(const s of seg.steps){if(u<=0)break;const d=Math.min(s.count,u);sum+=d*(s.y||0);u-=d;}
+    break;
+  }
+  return sum;
+}
 function buildPlan(text,prevTarget,target){
   const raw=expandSteps(stripCount(text),prevTarget,target);
-  const segs=raw.map(s=>s.kind==='rep'?{kind:'rep',times:s.times,steps:flatten(s.steps).map(x=>({label:x.label,count:x.count}))}:s);
+  const segs=raw.map(s=>s.kind==='rep'?{kind:'rep',times:s.times,steps:flatten(s.steps).map(x=>({label:x.label,count:x.count,y:x.y||0}))}:s);
+  if(!segs.length){segs.push({kind:'step',label:text.trim()||'Feito',count:1,y:0});}
+  const last=segs[segs.length-1];
+  // um "Pbx" solto no fim da carreira é arremate, não ponto (mas "3Pbx" conta)
+  {const lab=spaced(last.kind==='step'?last.label.replace(/\([^)]*\)/g,' '):'');if(last.kind==='step'&&/\b(pbx|sl\s?st|slst)\b/i.test(lab)&&!/\d/.test(lab))last.y=0;}
+  // "3 corr" / "ch 3" no começo de uma carreira de pontos altos conta como o primeiro ponto
+  if(/\b(pa|dc|mpa|hdc|tr|pad|pat)\b/i.test(spaced(text))&&!/\b(fa[çc]a|make|chain)\b/i.test(text)){
+    for(const seg of segs){
+      if(seg.kind!=='step')break;
+      const lab=spaced(seg.label.replace(/\([^)]*\)/g,' ')).trim();
+      if(/\b(pbx|sl\s?st)\b/i.test(lab))continue;
+      const m=/^(\d)\s*(corr|ch|correntinhas?)\b/i.exec(lab)||/^(?:corr|ch)\s*(\d)\b/i.exec(lab);
+      if(m&&+m[1]>=2&&+m[1]<=3&&seg.y===0){seg.count=1;seg.y=1;}
+      break;
+    }
+  }
   const total=segs.reduce((a,s)=>a+(s.kind==='step'?s.count:s.times*s.steps.reduce((b,x)=>b+x.count,0)),0);
-  if(!segs.length){segs.push({kind:'step',label:text.trim()||'Feito',count:1});return {segments:segs,total:1};}
-  return {segments:segs,total:Math.max(1,total)};
+  const plan={segments:segs,total:Math.max(1,total)};
+  plan.produced=producedUpTo(plan,plan.total);
+  return plan;
 }
 function locate(plan,taps){
   let t=Math.max(0,taps|0),offset=0;
@@ -668,10 +724,19 @@ function renderNow(){
   $('#now-text').classList.toggle('compact',chipCount>1);
   renderSteps(p,i,plan,taps,loc);
   $('#steps-hint').hidden=true;
-  $('#st-count').value=taps;
-  $('#st-target').textContent='de '+plan.total;
+  const made=producedUpTo(plan,taps),goal=row.target||plan.produced;
+  $('#st-count').value=made;
+  $('#st-target').textContent='de '+goal+' pts';
   const nowTxt=loc?('· '+(loc.rep?'rep. '+loc.rep+'/'+loc.repTimes+' · ':'')+loc.label+(loc.count>1?' '+loc.done+'/'+loc.count:'')):'· tudo marcado';
   $('#dock-now').textContent=nowTxt;
+  const piece=$('#piece');piece.textContent='';
+  if(plan.produced>0||row.target){
+    piece.appendChild(el('span',null,'Pontos na peça até aqui: '));
+    piece.appendChild(el('b',null,String(made)));
+    piece.appendChild(el('span',null,' de '+goal));
+    if(row.target&&plan.produced!==row.target)piece.appendChild(el('span','warn',' · pelas instruções dá '+plan.produced));
+    piece.hidden=false;
+  }else piece.hidden=true;
   $('#btn-prev').disabled=i===0;
   const noun=row.kind==='rnd'?'Volta':row.kind==='note'?'Etapa':'Carreira';
   $('#btn-done').textContent=i===t-1?(p.done[i]?'Receita concluída':'Concluir receita'):(p.done[i]?'Próxima ›':noun+' concluída ›');
@@ -698,7 +763,8 @@ function renderSteps(p,i,plan,taps,loc){
     const state=taps>=end?'on':(taps>=start?'active':'');
     if(state)b.classList.add(state);
     b.appendChild(el('span',null,label));
-    if(count>1||state==='active'){const n=el('span','n',state==='active'?(taps-start)+'/'+count:String(count));b.appendChild(n);}
+    if(state==='on'){const c=producedUpTo(plan,end);if(c>0)b.appendChild(el('span','n','= '+c));}
+    else if(count>1||state==='active'){const n=el('span','n',state==='active'?(taps-start)+'/'+count:String(count));b.appendChild(n);}
     b.setAttribute('aria-label',label+(count>1?', '+count+' pontos':'')+(state==='active'?', instrução atual':state==='on'?', feita':'')+'. Segure para concluir a instrução');
     // toque: um ponto; segurar: a instrução inteira
     let timer=null;
@@ -1073,7 +1139,7 @@ function speak(text){
 function readRow(p,r){
   const taps=Math.min(p.taps[p.cur]||0,r.plan.total),loc=locate(r.plan,taps);
   let s=labelFor(r,false)+'. '+ttsText(r.text)+'.';
-  s+=' Ponto '+taps+' de '+r.plan.total+'.';
+  s+=' Pontos na peça até aqui: '+producedUpTo(r.plan,taps)+' de '+(r.target||r.plan.produced)+'.';
   if(loc){s+=' Agora: '+ttsText(loc.label)+(loc.count>1?', '+loc.done+' de '+loc.count:'')+'.';if(loc.rep)s+=' Repetição '+loc.rep+' de '+loc.repTimes+'.';}
   return s;
 }
@@ -1104,7 +1170,7 @@ function runCommand(a){
   setTaps(p,i,a.set!=null?a.set:taps+a.delta,true);
   const d=after();if(d)return d;
   const loc=locate(plan,p.taps[i]||0);
-  return 'Ponto '+(p.taps[i]||0)+' de '+plan.total+(loc?'. '+ttsText(loc.label)+(loc.count>1?', '+loc.done+' de '+loc.count:''):'');
+  return producedUpTo(plan,p.taps[i]||0)+' de '+(r.target||plan.produced)+' pontos'+(loc?'. '+ttsText(loc.label)+(loc.count>1?', '+loc.done+' de '+loc.count:''):'');
 }
 function setVoiceStatus(msg,cls){
   const s=$('#voice-status');s.textContent='';s.className='voice-status'+(cls?' '+cls:'');
