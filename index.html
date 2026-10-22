@@ -404,8 +404,10 @@ const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 
 /* ---------- Interpretação da receita (português e inglês) ---------- */
-const ST_TERMS=/\b(sc|dc|hdc|tr|dtr|ch|sl\s?st|sts?|inc|dec|yo|blo|flo|fpdc|bpdc|rep|sk|skip|join|magic ring|mr|stitch(es)?|pb|pa|mpa|pad|pat|pbx|corr|corrente|correntinha|aum|dim|pts?|pontos?|anel m[áa]gico|am)\b/i;
+const ST_TERMS=/\b(sc|dc|hdc|tr|dtr|ch|sl\s?st|sts?|inc|dec|yo|blo|flo|fpdc|bpdc|rep|sk|skip|join|magic ring|mr|stitch(es)?|pb|pa|mpa|pad|pat|pbx|corr|corrente|correntinha|aum|dim|diminv|sat|saf|pts?|pontos?|anel m[áa]gico|am)\b/i;
 const ROW_RE=/^(rows?|rounds?|rnds?|r|carreiras?|carr|voltas?|vlts?|rodadas?|rd|fileiras?)\s*\.?\s*(\d+)(?:\s*(?:-|–|—|to|through|thru|&|and|a|à|até|e)\s*(\d+))?\s*(\([^)]*\))?\s*(?:[:.\-–—]|\s)\s*(.*)$/i;
+/* Estilo "1 carr …" / "8 — 31 carr …" (número antes da palavra), comum em receitas de amigurumi. */
+const ROW_RE2=/^(\d+)(?:\s*(?:-|–|—|a|à|até|e|to)\s*(\d+))?\s*(carreiras?|carr|voltas?|vlts?|rodadas?|rnds?|rows?|rounds?)\.?\s*(\([^)]*\))?\s*[:.\-–—]?\s*(.*)$/i;
 const NUM_RE=/^(\d+)\s*[.):\-–]\s+(.*)$/;
 const COUNT_WORDS=/(sts?|stitches|stitch|sc|dc|hdc|tr|dtr|pts?|pontos?|pb|pa|mpa|pbx|corr)\b/i;
 const KIND_RND=/^(r(ou)?nd|voltas?|vlts?|rodadas?|rd)$/i;
@@ -415,6 +417,9 @@ function parseTarget(text){
   if(m){const n=m[1].match(/(\d+)\s*(?:sts?|stitches|stitch|sc|dc|hdc|tr|dtr|pts?|pontos?|pb|pa|mpa|pbx|corr)?\b/i);if(n)return +n[1];}
   m=text.match(/\[(\d+)[^\]]*\]\s*\.?\s*$/);if(m)return +m[1];
   m=text.match(/(?:=|—|–|-|,|total:?)\s*(\d+)\s*(?:sts?|stitches|pts?|pontos?)\s*\.?\s*$/i);if(m)return +m[1];
+  // "(10), Pbx": a contagem entre parênteses pode vir antes de um arremate; vale a última só com número
+  const all=text.match(/\(\s*\d+\s*(?:sts?|stitches|pts?|pontos?|pb|pa|sc|dc)?\s*\)/gi);
+  if(all){const n=all[all.length-1].match(/\d+/);if(n)return +n[0];}
   return null;
 }
 function parseRepeat(text){
@@ -428,6 +433,7 @@ function stripCount(text){
     .replace(/\s*\(([^()]*)\)\s*\.?\s*$/,(m,inner)=>(/\d/.test(inner)&&COUNT_WORDS.test(inner))||/^\s*\d+\s*$/.test(inner)?'':m)
     .replace(/\s*\[\d+[^\]]*\]\s*\.?\s*$/,'')
     .replace(/\s*(?:=|—|–|-|,|total:?)\s*\d+\s*(?:sts?|stitches|pts?|pontos?)\s*\.?\s*$/i,'')
+    .replace(/\s*\(\s*\d+\s*(?:sts?|stitches|pts?|pontos?|pb|pa|sc|dc)?\s*\)/gi,'')
     .trim();
 }
 function splitSteps(text){
@@ -443,14 +449,16 @@ function splitSteps(text){
   return out.map(s=>s.replace(/\.$/,'').trim()).filter(Boolean).slice(0,60);
 }
 const SMALL_WORDS=/^(of|the|and|for|to|a|an|in|with|&|-|–|de|da|do|das|dos|e|para|com|em|o|os|as|ou|no|na|nos|nas)$/i;
-function isHeading(line){
+function isHeading(line,afterBlank){
   if(line.length>60)return false;
   if(/[.!?]$/.test(line))return false;
   if(/:$/.test(line))return true;
   const words=line.split(/\s+/);
   if(words.length>6)return false;
   if(line===line.toUpperCase()&&/\p{Lu}/u.test(line))return true;
-  return words.every(w=>/^[\p{Lu}0-9("']/u.test(w)||SMALL_WORDS.test(w));
+  if(words.every(w=>/^[\p{Lu}0-9("']/u.test(w)||SMALL_WORDS.test(w)))return true;
+  // "Ponte nasal" depois de uma linha em branco: título curto, só a primeira palavra maiúscula
+  return !!afterBlank&&words.length<=3&&/^\p{Lu}/u.test(line)&&!/[,;]/.test(line)&&!ST_TERMS.test(line);
 }
 function labelFor(r,short){
   if(r.kind==='note')return 'Etapa';
@@ -460,14 +468,20 @@ function labelFor(r,short){
 /* Plano de toques: cada instrução vira um alvo com um número de pontos; trechos entre asteriscos ou parênteses viram blocos repetidos. */
 const NEXT_N=/\b(?:nos?|nas?|in|em|dos?|das?|into)\s+(?:pr[oó]ximos?|next|seguintes?|following)\s+(\d+)\b/i;
 const COUNT_LEAD=/^(\d+)\s*(?:x\s*)?(?=[a-zÀ-ÿ(])/i;
-const COUNT_TAIL=/^(?:ch|sc|dc|hdc|tr|dtr|corr|pb|pa|mpa|pbx)\s+(\d+)$/i;
+const COUNT_TAIL=/^(?:ch|sc|dc|hdc|tr|dtr|corr|pb|pa|mpa|pbx)\s*(\d+)$/i;
+const COUNT_PREFIXED=/^[a-zÀ-ÿ]{2,4}(\d+)\s*[a-z]/i;
+const COUNT_ANY=/^(?:fa[çc]a|fazer|trabalhe|trabalhar|tece|make|work|chain)\s+(?:uma\s+corrente\s+de\s+)?(\d+)\s*(?:corr|correntinhas?|ch|pb|pa|mpa|pbx|sc|dc|hdc|tr|aum|diminv|dim|inc|dec|pts?|pontos?|sts?)\b/i;
 const EACH=/\b(?:em cada|cada|each|every|ao redor|around|at[eé] o fim|to (?:the )?end|em todos|em todas|todos os|todas as)\b/i;
 const clampN=n=>Math.max(1,Math.min(500,n|0));
 function stepCount(label,prevTarget,target){
-  let m=NEXT_N.exec(label);if(m)return clampN(+m[1]);
-  if(EACH.test(label)&&(prevTarget||target))return clampN(prevTarget||target);
-  m=COUNT_LEAD.exec(label);if(m)return clampN(+m[1]);
-  m=COUNT_TAIL.exec(label.trim());if(m)return clampN(+m[1]);
+  const core=label.replace(/^\([^)]*\)\s*/,'').trim();
+  const noParen=core.replace(/\([^)]*\)/g,' ');
+  let m=NEXT_N.exec(noParen);if(m)return clampN(+m[1]);
+  if(EACH.test(noParen)&&(prevTarget||target))return clampN(prevTarget||target);
+  m=COUNT_LEAD.exec(core);if(m)return clampN(+m[1]);
+  m=COUNT_TAIL.exec(noParen.trim());if(m)return clampN(+m[1]);
+  m=COUNT_PREFIXED.exec(core);if(m)return clampN(+m[1]);
+  m=COUNT_ANY.exec(noParen);if(m)return clampN(+m[1]);
   return 1;
 }
 function repTail(tail){return /\b(rep|repetir|repita|repete|repeat|vezes|vez|times|x\s?\d|\d\s?x|at[eé] o fim|ao redor|around|to end|more)\b/i.test(tail);}
@@ -519,12 +533,14 @@ function makeRow(section,kind,num,body,prevTarget){
 }
 function parsePattern(text){
   const lines=text.replace(/ /g,' ').split(/\r?\n/).map(l=>l.trim());
-  const rows=[],intro=[];let section='',title='',lastBatch=null;
+  const rows=[],intro=[];let section='',title='',lastBatch=null,afterBlank=true;
   const prevT=()=>{for(let i=rows.length-1;i>=0;i--){if(rows[i].kind!=='note'&&rows[i].target)return rows[i].target;}return null;};
   for(const line of lines){
-    if(!line){lastBatch=null;continue;}
+    if(!line){lastBatch=null;afterBlank=true;continue;}
+    const blank=afterBlank;afterBlank=false;
     let m=ROW_RE.exec(line),kind=null,a,b,body;
     if(m){kind=KIND_RND.test(m[1])?'rnd':'row';a=+m[2];b=m[3]?+m[3]:a;body=((m[4]||'')+' '+m[5]).trim();}
+    else if((m=ROW_RE2.exec(line))){kind=KIND_RND.test(m[3])?'rnd':'row';a=+m[1];b=m[2]?+m[2]:a;body=((m[4]||'')+' '+m[5]).trim();}
     else if((m=NUM_RE.exec(line))&&ST_TERMS.test(m[2])){kind='row';a=b=+m[1];body=m[2];}
     if(kind){
       if(b<a)[a,b]=[b,a];
@@ -540,7 +556,7 @@ function parsePattern(text){
       }
       rows.push(...batch);lastBatch=batch;continue;
     }
-    if(isHeading(line)){
+    if(isHeading(line,blank)){
       if(rows.length===0&&!title&&!section)title=line;
       else section=line.replace(/:$/,'').trim();
       lastBatch=null;continue;
@@ -549,7 +565,7 @@ function parsePattern(text){
       lastBatch.forEach(r=>{const t=(r.text+' '+line).trim();Object.assign(r,makeRow(r.section,r.kind,r.num,t,r.prevTarget));});
       continue;
     }
-    if(rows.length===0){intro.push(line);continue;}
+    if(rows.length===0&&!section){intro.push(line);continue;}
     rows.push(makeRow(section,'note',null,line,null));lastBatch=null;
   }
   return {rows,intro:intro.join(' '),title};
@@ -1045,8 +1061,8 @@ function afterWake(text){
   }
   return null;
 }
-const TTS_MAP={pb:'ponto baixo',pa:'ponto alto',mpa:'meio ponto alto',pad:'ponto alto duplo',pat:'ponto alto triplo',pbx:'ponto baixíssimo',corr:'correntinha',aum:'aumento',dim:'diminuição',pts:'pontos',pt:'ponto',rep:'repetir',sc:'ponto baixo',dc:'ponto alto',hdc:'meio ponto alto',ch:'correntinha',sts:'pontos',st:'ponto',inc:'aumento',dec:'diminuição'};
-function ttsText(s){return String(s||'').replace(/\*/g,' ').replace(/\b([a-z]{2,4})\b/gi,(m,w)=>TTS_MAP[w.toLowerCase()]||m).replace(/\b(\d+) (meio )?ponto (baixo|alto|baixíssimo)\b/g,(m,n,meio,t)=>+n>1?n+' '+(meio?'meios ':'')+'pontos '+t+'s':m).replace(/\s+/g,' ').trim();}
+const TTS_MAP={pb:'ponto baixo',pa:'ponto alto',mpa:'meio ponto alto',pad:'ponto alto duplo',pat:'ponto alto triplo',pbx:'ponto baixíssimo',corr:'correntinha',aum:'aumento',dim:'diminuição',diminv:'diminuição invisível',paddiminv:'ponto alto duplo em diminuição invisível',sat:'somente alça de trás',saf:'somente alça da frente',blo:'somente alça de trás',flo:'somente alça da frente',pts:'pontos',pt:'ponto',rep:'repetir',sc:'ponto baixo',dc:'ponto alto',hdc:'meio ponto alto',ch:'correntinha',sts:'pontos',st:'ponto',inc:'aumento',dec:'diminuição'};
+function ttsText(s){return String(s||'').replace(/\*/g,' ').replace(/(\d)([a-zA-Z])/g,'$1 $2').replace(/([a-zA-Z])(\d)/g,'$1 $2').replace(/\b(sat|saf)(pb|pa|aum|mpa)\b/gi,'$1 $2').replace(/\b([a-z]{2,9})\b/gi,(m,w)=>TTS_MAP[w.toLowerCase()]||m).replace(/\b(\d+) (meio )?ponto (baixo|alto|baixíssimo)\b/g,(m,n,meio,t)=>+n>1?n+' '+(meio?'meios ':'')+'pontos '+t+'s':m).replace(/\s+/g,' ').trim();}
 function speak(text){
   if(!voice.feedback||!('speechSynthesis'in window)||!text)return;
   try{
