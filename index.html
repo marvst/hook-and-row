@@ -81,23 +81,24 @@ kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(
 .about p{margin-top:6px}
 
 /* Carreira atual */
-.now{margin-block:12px;background:var(--surface);border-radius:18px;padding:16px;box-shadow:var(--shadow);display:grid;gap:12px}
+.now{margin-block:10px;background:var(--surface);border-radius:18px;padding:14px;box-shadow:var(--shadow);display:grid;gap:10px}
 .now-label{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .row-label{font-family:var(--display);font-size:1.9rem;font-weight:700;line-height:1}
 .done-pill{font-size:.75rem;font-weight:700;color:var(--done);background:var(--done-soft);padding:3px 9px;border-radius:99px}
 .now-text{font-size:1.1rem;line-height:1.5;max-width:70ch}
-.steps{display:flex;flex-wrap:wrap;gap:8px}
-.step{min-height:40px;padding:8px 13px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);text-align:left;font-size:.95rem;line-height:1.3}
+.steps{display:grid;gap:8px}
+.step{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:12px 16px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line);text-align:left;font-size:1.05rem;line-height:1.3;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .08s}
+.step:active{transform:scale(.985)}
 .step.on{background:var(--done-soft);border-color:var(--done);text-decoration:line-through;text-decoration-color:var(--done);color:var(--muted)}
 .step.active{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700;box-shadow:0 0 0 4px var(--accent-soft)}
-.step .n{font-size:.78rem;color:var(--muted);margin-left:8px;font-variant-numeric:tabular-nums;font-weight:400}
-.step.active .n{color:var(--accent-fg);font-weight:700}
-.rep-group{flex-basis:100%;border:1px dashed var(--line);border-radius:14px;padding:8px 10px;display:grid;gap:8px}
+.step .n{font-size:.95rem;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:400;flex:none;min-width:3ch;text-align:right}
+.step.active .n{color:var(--accent-fg);font-weight:700;font-size:1.05rem}
+.step.pressing{box-shadow:0 0 0 4px var(--done-soft);border-color:var(--done)}
+.rep-group{border:1px dashed var(--line);border-radius:14px;padding:10px;display:grid;gap:8px}
 .rep-group.done{opacity:.55}
 .rep-head{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.rep-steps{display:flex;flex-wrap:wrap;gap:8px}
-.dock-now{font-size:.95rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.3em}
+.rep-steps{display:grid;gap:8px}
 .steps-hint{font-size:.78rem;color:var(--muted);margin-top:6px}
 .next-up{font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .note summary{cursor:pointer;font-size:.9rem;font-weight:700;color:var(--muted);min-height:36px;display:flex;align-items:center}
@@ -121,23 +122,17 @@ kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(
 .row-note{font-size:.82rem;color:var(--accent);font-style:italic}
 
 /* Barra inferior: contadores e concluir, presos ao fim da tela */
-.dock{position:sticky;bottom:0;z-index:4;margin-top:auto;margin-inline:calc(-1 * var(--gutter-l)) calc(-1 * var(--gutter-r));padding:10px var(--gutter-r) 10px var(--gutter-l);background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -10px 28px -18px rgba(35,30,39,.45);display:grid;gap:8px}
-.dock-top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.82rem}
-.dock-lbl{font-weight:700}
-.dock-top .target{color:var(--muted);font-variant-numeric:tabular-nums}
-.dock-rep{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
-.dock-rep output{font-weight:700;min-width:1.5ch;text-align:center}
-.mini{width:36px;height:36px;border-radius:50%;background:var(--surface-2);font-size:1.2rem;font-weight:700;line-height:1;display:grid;place-items:center}
-.dock-rep.reached output{color:var(--done)}
-.dock-count{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px}
-.big-btn{width:60px;height:60px;border-radius:50%;background:var(--surface-2);font-size:2rem;line-height:1;font-weight:700;flex:none;transition:transform .08s;display:grid;place-items:center}
+.dock{position:sticky;bottom:0;z-index:4;margin-top:auto;margin-inline:calc(-1 * var(--gutter-l)) calc(-1 * var(--gutter-r));padding:6px var(--gutter-r) 8px var(--gutter-l);background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -10px 28px -18px rgba(35,30,39,.45);display:grid;gap:6px}
+.dock-inner{display:grid;gap:6px}
+.dock-info{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted);min-height:36px}
+.dock-info .txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.dock-info .txt b{color:var(--fg)}
+.mini{width:36px;height:36px;border-radius:50%;background:var(--surface-2);font-size:1.2rem;font-weight:700;line-height:1;display:grid;place-items:center;flex:none}
+.dock-main{display:grid;grid-template-columns:52px 64px minmax(0,1fr);gap:8px;align-items:center}
+.big-btn{width:52px;height:52px;border-radius:50%;background:var(--surface-2);font-size:1.7rem;line-height:1;font-weight:700;flex:none;transition:transform .08s;display:grid;place-items:center}
 .big-btn:active{transform:scale(.94)}
-.big-btn.plus{background:var(--accent);color:var(--accent-fg);width:76px;height:76px;font-size:2.4rem}
-.count{font-family:var(--display);font-size:2.8rem;font-weight:700;font-variant-numeric:tabular-nums;text-align:center;line-height:1}
-.dock-count.reached .count{color:var(--done)}
-.row-actions{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
-.row-actions .primary{font-size:1.05rem}
-.row-actions .ghost{padding-inline:16px}
+.big-btn.plus{background:var(--accent);color:var(--accent-fg);width:64px;height:64px;font-size:2.2rem}
+.dock-main .primary{min-height:56px;font-size:1.05rem}
 
 /* Voz */
 .dock-left{display:flex;align-items:center;gap:8px}
@@ -175,7 +170,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
 .help ul{margin:0;padding-left:20px;display:grid;gap:8px;font-size:.92rem}
 .help code{background:var(--surface-2);padding:1px 5px;border-radius:4px;font-size:.9em}
 
-.toast{position:fixed;left:50%;bottom:calc(190px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;z-index:60;font-size:.92rem;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.toast{position:fixed;left:50%;bottom:calc(136px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;z-index:60;font-size:.92rem;white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 
 /* Telas maiores: duas colunas, caixas centralizadas, atalhos de teclado */
@@ -203,7 +198,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
   .row-label{font-size:2.1rem}
   .now-text{font-size:1.15rem}
   .dock{margin-inline:0;padding-inline:0;border-top:0;box-shadow:none;background:transparent}
-  .dock-inner{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 16px;display:grid;gap:8px;box-shadow:var(--shadow)}
+  .dock-inner{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:10px 16px;box-shadow:var(--shadow)}
   .toast{bottom:calc(24px + env(safe-area-inset-bottom,0px))}
 }
 </style>
@@ -219,7 +214,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
     <footer class="lib-foot">
       <button class="link" id="btn-backup" type="button">Backup e restauração</button>
       <button class="link" id="btn-help" type="button">Formato da receita</button>
-      <span class="ver" title="Se o app parecer antigo, recarregue a página">v8 · 22 out 2026</span>
+      <span class="ver" title="Se o app parecer antigo, recarregue a página">v9 · 22 out 2026</span>
     </footer>
   </aside>
 
@@ -259,7 +254,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
         <p class="now-text" id="now-text"></p>
         <div>
           <div class="steps" id="steps"></div>
-          <p class="steps-hint" id="steps-hint">Toque na instrução destacada a cada ponto feito; ela passa sozinha para a próxima. Toque em outra instrução para pular até ela.</p>
+          <p class="steps-hint" id="steps-hint">Toque: um ponto. Segure: a instrução inteira. Toque em outra instrução para pular até ela.</p>
         </div>
         <p class="next-up" id="next-up"></p>
         <details class="note">
@@ -274,27 +269,14 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
       <div class="dock" id="dock">
         <div class="dock-inner">
           <p class="voice-status" id="voice-status" hidden></p>
-          <div class="dock-top">
-            <div class="dock-left">
-              <button class="mini mic" id="btn-mic" type="button" aria-label="Comandos de voz" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg></button>
-              <span class="dock-lbl">Ponto</span> <span class="target" id="st-target"></span>
-            </div>
-            <div class="dock-rep" id="rep-counter" hidden>
-              <span class="dock-lbl">Repetição</span>
-              <button class="mini" id="rep-minus" type="button" aria-label="Voltar uma repetição">&minus;</button>
-              <output id="rep-count" for="rep-plus rep-minus">0</output>
-              <span class="target" id="rep-target"></span>
-              <button class="mini" id="rep-plus" type="button" aria-label="Pular para a próxima repetição">+</button>
-            </div>
+          <div class="dock-info">
+            <button class="mini mic" id="btn-mic" type="button" aria-label="Comandos de voz" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg></button>
+            <span class="txt"><b><output id="st-count" for="st-plus st-minus">0</output> <span id="st-target"></span></b> <span id="dock-now"></span></span>
+            <button class="mini" id="btn-prev" type="button" aria-label="Carreira anterior">&#8249;</button>
           </div>
-          <p class="dock-now" id="dock-now"></p>
-          <div class="dock-count" id="st-counter">
+          <div class="dock-main">
             <button class="big-btn" id="st-minus" type="button" aria-label="Desfazer um ponto">&minus;</button>
-            <output class="count" id="st-count" for="st-plus st-minus">0</output>
             <button class="big-btn plus" id="st-plus" type="button" aria-label="Marcar um ponto">+</button>
-          </div>
-          <div class="row-actions">
-            <button class="btn ghost" id="btn-prev" type="button" aria-label="Carreira anterior">&#8249;</button>
             <button class="btn primary" id="btn-done" type="button">Carreira concluída &#8250;</button>
           </div>
         </div>
@@ -684,17 +666,8 @@ function renderNow(){
   renderSteps(p,i,plan,taps,loc);
   $('#steps-hint').hidden=plan.total<2;
   $('#st-count').value=taps;
-  $('#st-target').textContent='de '+plan.total+(row.target&&row.target!==plan.total?' · receita: '+row.target+' pts':'');
-  $('#st-counter').classList.toggle('reached',taps>=plan.total);
-  const fr=firstRep(plan);
-  $('#rep-counter').hidden=!fr;
-  if(fr){
-    const repNow=loc&&loc.rep?loc.rep:(taps>=fr.start+fr.len*fr.times?fr.times:0);
-    $('#rep-count').value=repNow;
-    $('#rep-target').textContent='de '+fr.times;
-    $('#rep-counter').classList.toggle('reached',!loc||loc.rep===null&&taps>=fr.start+fr.len*fr.times);
-  }
-  const nowTxt=loc?(loc.label+(loc.count>1?' · '+loc.done+'/'+loc.count:'')+(loc.rep?' · repetição '+loc.rep+' de '+loc.repTimes:'')):'Tudo marcado nesta carreira';
+  $('#st-target').textContent='de '+plan.total;
+  const nowTxt=loc?('· '+(loc.rep?'rep. '+loc.rep+'/'+loc.repTimes+' · ':'')+loc.label+(loc.count>1?' '+loc.done+'/'+loc.count:'')):'· tudo marcado';
   $('#dock-now').textContent=nowTxt;
   $('#btn-prev').disabled=i===0;
   const noun=row.kind==='rnd'?'Volta':row.kind==='note'?'Etapa':'Carreira';
@@ -712,6 +685,7 @@ function renderNow(){
   renderLibrary();
 }
 function cntText(p,k){const r=p.rows[k];const s=Math.min(p.taps[k]||0,r.plan.total);if(r.plan.total>1||s)return s+' / '+r.plan.total;return '';}
+let longPressAt=0;
 function renderSteps(p,i,plan,taps,loc){
   const box=$('#steps');box.textContent='';
   let offset=0;
@@ -722,8 +696,25 @@ function renderSteps(p,i,plan,taps,loc){
     if(state)b.classList.add(state);
     b.appendChild(el('span',null,label));
     if(count>1||state==='active'){const n=el('span','n',state==='active'?(taps-start)+'/'+count:String(count));b.appendChild(n);}
-    b.setAttribute('aria-label',label+(count>1?', '+count+' pontos':'')+(state==='active'?', instrução atual':state==='on'?', feita':''));
+    b.setAttribute('aria-label',label+(count>1?', '+count+' pontos':'')+(state==='active'?', instrução atual':state==='on'?', feita':'')+'. Segure para concluir a instrução');
+    // toque: um ponto; segurar: a instrução inteira
+    let timer=null;
+    const begin=e=>{
+      if(e.pointerType==='mouse'&&e.button!==0)return;
+      clearTimeout(timer);b.classList.add('pressing');
+      timer=setTimeout(()=>{
+        timer=null;b.classList.remove('pressing');longPressAt=Date.now();
+        try{if(navigator.vibrate)navigator.vibrate(30);}catch(x){}
+        toast(label+(count>1?' · '+count+' pontos':'')+' · feita');
+        setTaps(p,i,end);
+      },450);
+    };
+    const cancel=()=>{if(timer){clearTimeout(timer);timer=null;}b.classList.remove('pressing');};
+    b.addEventListener('pointerdown',begin);
+    ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,cancel));
+    b.addEventListener('contextmenu',e=>e.preventDefault());
     b.addEventListener('click',()=>{
+      if(Date.now()-longPressAt<700)return;
       if(state==='active')setTaps(p,i,taps+1);
       else setTaps(p,i,start);
     });
@@ -825,8 +816,6 @@ function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTi
 
 $('#st-plus').addEventListener('click',()=>tap(1));
 $('#st-minus').addEventListener('click',()=>tap(-1));
-$('#rep-plus').addEventListener('click',()=>repJump(1));
-$('#rep-minus').addEventListener('click',()=>repJump(-1));
 $('#btn-done').addEventListener('click',()=>rowDone(false));
 $('#btn-prev').addEventListener('click',prevRow);
 $('#btn-back-lib').addEventListener('click',()=>setView('library'));
