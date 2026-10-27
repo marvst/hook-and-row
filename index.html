@@ -110,11 +110,13 @@ kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(
 .hint{font-size:.8rem;color:var(--muted)}
 
 /* Lista de carreiras */
-#pattern{display:flex;flex-direction:column;flex:1}
-.rows{display:grid;gap:2px;padding-bottom:12px}
-.section-title{font-family:var(--display);font-size:1.15rem;font-weight:700;margin:18px 0 6px;display:flex;align-items:baseline;gap:10px}
+#pattern{display:flex;flex-direction:column;flex:1;min-height:0}
+/* A receita completa é uma área própria que rola até a carreira atual; o cartão fica parado acima dela. */
+.rows{flex:1 1 auto;min-height:220px;overflow:auto;-webkit-overflow-scrolling:touch;position:relative;padding-bottom:8px;border-top:1px solid var(--line)}
+.row{margin-bottom:2px}
+.section-title{position:sticky;top:0;z-index:1;background:var(--bg);font-family:var(--display);font-size:1.15rem;font-weight:700;margin:0;padding:10px 0 6px;display:flex;align-items:baseline;gap:10px}
 .section-title small{font-family:var(--body);font-size:.78rem;font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
-.row{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;align-items:start;padding:8px 6px;border-radius:12px;min-height:52px}
+.row{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;align-items:start;padding:8px 6px;border-radius:12px;min-height:52px;scroll-margin-top:48px}
 .row.current{background:var(--accent-soft)}
 .check{width:36px;height:36px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;color:transparent;font-weight:700;margin-top:2px}
 .row.done .check{background:var(--done);border-color:var(--done);color:var(--bg)}
@@ -126,7 +128,7 @@ kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(
 .row-note{font-size:.82rem;color:var(--accent);font-style:italic}
 
 /* Barra inferior: contadores e concluir, presos ao fim da tela */
-.dock{position:sticky;bottom:0;z-index:4;margin-top:auto;margin-inline:calc(-1 * var(--gutter-l)) calc(-1 * var(--gutter-r));padding:6px var(--gutter-r) 8px var(--gutter-l);background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -10px 28px -18px rgba(35,30,39,.45);display:grid;gap:6px}
+.dock{position:sticky;bottom:0;z-index:4;margin-top:0;flex:none;margin-inline:calc(-1 * var(--gutter-l)) calc(-1 * var(--gutter-r));padding:6px var(--gutter-r) 8px var(--gutter-l);background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -10px 28px -18px rgba(35,30,39,.45);display:grid;gap:6px}
 .dock-inner{display:grid;gap:6px}
 .dock-info{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted);min-height:36px}
 .dock-info .txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
@@ -218,7 +220,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
     <footer class="lib-foot">
       <button class="link" id="btn-backup" type="button">Backup e restauração</button>
       <button class="link" id="btn-help" type="button">Formato da receita</button>
-      <span class="ver" title="Se o app parecer antigo, recarregue a página">v12 · 22 out 2026</span>
+      <span class="ver" title="Se o app parecer antigo, recarregue a página">v13 · 26 out 2026</span>
     </footer>
   </aside>
 
@@ -278,6 +280,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
             <button class="mini mic" id="btn-mic" type="button" aria-label="Comandos de voz" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg></button>
             <span class="txt"><b><output id="st-count" for="st-plus st-minus">0</output> <span id="st-target"></span></b> <span id="dock-now"></span></span>
             <button class="mini" id="btn-prev" type="button" aria-label="Carreira anterior">&#8249;</button>
+            <button class="mini" id="btn-next" type="button" aria-label="Próxima carreira, sem concluir esta">&#8250;</button>
           </div>
           <div class="dock-main">
             <button class="big-btn" id="st-minus" type="button" aria-label="Desfazer um ponto">&minus;</button>
@@ -688,7 +691,7 @@ const plural=(n,one,many)=>n+' '+(n===1?one:many);
 
 /* ---------- Renderização ---------- */
 const app=$('#app'),work=$('#work');
-function setView(v){app.dataset.view=v;}
+function setView(v){app.dataset.view=v;if(v==='pattern')scrollListToCurrent(false);}
 
 function renderLibrary(){
   const list=$('#pattern-list');list.textContent='';
@@ -750,6 +753,9 @@ function renderNow(){
     const c=r.querySelector('.cnt');if(c)c.textContent=cntText(p,k);
     const n=r.querySelector('.row-note');if(n){n.textContent=p.notes[k]||'';n.hidden=!p.notes[k];}
   });
+  const key=p.id+':'+i;
+  if(key!==lastScrolled){lastScrolled=key;scrollListToCurrent(true);}
+  $('#btn-next').disabled=i>=t-1;
   renderLibrary();
 }
 function cntText(p,k){const r=p.rows[k];const s=Math.min(p.taps[k]||0,r.plan.total);if(r.plan.total>1||s)return s+' / '+r.plan.total;return '';}
@@ -827,9 +833,16 @@ function renderList(){
     const lblEl=el('div','lbl');lblEl.appendChild(el('span',null,lbl));lblEl.appendChild(el('span','cnt',cntText(p,k)));
     const note=el('div','row-note',p.notes[k]||'');note.hidden=!p.notes[k];
     main.append(lblEl,el('div','row-text',r.text),note);
-    main.addEventListener('click',()=>{p.cur=k;save();renderNow();work.scrollTo({top:0,behavior:'smooth'});});
+    main.addEventListener('click',()=>{p.cur=k;save();renderNow();});
     d.append(chk,main);box.appendChild(d);
   });
+  scrollListToCurrent(false);
+}
+let lastScrolled='';
+function scrollListToCurrent(smooth){
+  const list=$('#rows'),cur=list.querySelector('.row.current');if(!cur)return;
+  const top=Math.max(0,cur.offsetTop-48);
+  list.scrollTop=top;
 }
 
 function renderAll(){
@@ -879,6 +892,7 @@ function repJump(delta){
   setTaps(p,i,fr.start+next*fr.len);
 }
 function prevRow(){const p=active();if(!p||p.cur===0)return;p.cur--;save();renderNow();}
+function nextRow(){const p=active();if(!p||p.cur>=p.rows.length-1)return;p.cur++;save();renderNow();}
 
 let toastTimer=null;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true;},1800);}
@@ -887,6 +901,7 @@ $('#st-plus').addEventListener('click',()=>tap(1));
 $('#st-minus').addEventListener('click',()=>tap(-1));
 $('#btn-done').addEventListener('click',()=>rowDone(false));
 $('#btn-prev').addEventListener('click',prevRow);
+$('#btn-next').addEventListener('click',nextRow);
 $('#btn-back-lib').addEventListener('click',()=>setView('library'));
 $('#row-note').addEventListener('input',e=>{const p=active();if(!p)return;p.notes[p.cur]=e.target.value;save();
   const r=document.querySelector('#rows .row[data-i="'+p.cur+'"] .row-note');if(r){r.textContent=e.target.value;r.hidden=!e.target.value;}});
