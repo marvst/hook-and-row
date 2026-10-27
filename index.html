@@ -94,9 +94,10 @@ kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(
 .step{flex:1 1 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:60px;padding:12px 20px;border-radius:16px;background:var(--surface-2);border:1px solid var(--line);text-align:left;font-size:1.05rem;line-height:1.25;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .08s}
 .step:active{transform:scale(.985)}
 .step.on{background:var(--done-soft);border-color:var(--done);text-decoration:line-through;text-decoration-color:var(--done);color:var(--muted)}
-.step.active{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:700;box-shadow:0 0 0 4px var(--accent-soft)}
-.step .n{font-size:.95rem;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:400;flex:none;min-width:3ch;text-align:right}
-.step.active .n{color:var(--accent-fg);font-weight:700;font-size:1.05rem}
+.step.active{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);box-shadow:0 0 0 4px var(--accent-soft)}
+/* o número à direita tem largura reservada e a mesma fonte em todos os estados, para as instruções não mudarem de lugar */
+.step .n{font-size:.95rem;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:700;flex:none;min-width:5.5ch;text-align:right;white-space:nowrap}
+.step.active .n{color:var(--accent-fg)}
 .step.pressing{box-shadow:0 0 0 4px var(--done-soft);border-color:var(--done)}
 .rep-group{flex-basis:100%;border:1px dashed var(--line);border-radius:14px;padding:8px;display:grid;gap:8px}
 .rep-group.done{opacity:.55}
@@ -129,7 +130,8 @@ kbd{font-family:var(--body);font-size:.8em;padding:1px 6px;border:1px solid var(
 
 /* Barra inferior: contadores e concluir, presos ao fim da tela */
 .dock{position:sticky;bottom:0;z-index:4;margin-top:0;flex:none;margin-inline:calc(-1 * var(--gutter-l)) calc(-1 * var(--gutter-r));padding:6px var(--gutter-r) 8px var(--gutter-l);background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -10px 28px -18px rgba(35,30,39,.45);display:grid;gap:6px}
-.dock-inner{display:grid;gap:6px}
+.dock-inner{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.dock-info{min-width:0}
 .dock-info{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted);min-height:36px}
 .dock-info .txt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .dock-info .txt b{color:var(--fg)}
@@ -220,7 +222,7 @@ textarea{min-height:150px;resize:vertical;line-height:1.45}
     <footer class="lib-foot">
       <button class="link" id="btn-backup" type="button">Backup e restauração</button>
       <button class="link" id="btn-help" type="button">Formato da receita</button>
-      <span class="ver" title="Se o app parecer antigo, recarregue a página">v13 · 26 out 2026</span>
+      <span class="ver" title="Se o app parecer antigo, recarregue a página">v14 · 26 out 2026</span>
     </footer>
   </aside>
 
@@ -769,8 +771,11 @@ function renderSteps(p,i,plan,taps,loc){
     const state=taps>=end?'on':(taps>=start?'active':'');
     if(state)b.classList.add(state);
     b.appendChild(el('span',null,label));
-    if(state==='on'){const c=producedUpTo(plan,end);if(c>0)b.appendChild(el('span','n','= '+c));}
-    else if(count>1||state==='active'){const n=el('span','n',state==='active'?(taps-start)+'/'+count:String(count));b.appendChild(n);}
+    let badge='';
+    if(state==='on'){const c=producedUpTo(plan,end);if(c>0)badge='= '+c;}
+    else if(state==='active')badge=(taps-start)+'/'+count;
+    else if(count>1)badge=String(count);
+    b.appendChild(el('span','n',badge));
     b.setAttribute('aria-label',label+(count>1?', '+count+' pontos':'')+(state==='active'?', instrução atual':state==='on'?', feita':'')+'. Segure para concluir a instrução');
     // toque: um ponto; segurar: a instrução inteira
     let timer=null;
